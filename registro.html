@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prontuário do Paciente - Psi.me</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body onload="carregarProntuario()"> 
+    
+    <h1><a href="home.html">Psi.me</a></h1>
+    
+    <h1>Prontuário</h1>
+    <p id="paciente-nome-titulo">Carregando nome do paciente...</p>
+
+
+    <!-- ============================== -->
+    <!-- NOVO RELATO -->
+    <!-- ============================== -->
+    <div class="container form-consulta">
+        <h2>Novo Relato de Consulta</h2>
+
+        <form id="form-novo-relato">
+            <label for="relato">Relato do dia:</label>
+            <textarea id="relato" name="relato" rows="6" required></textarea>
+            
+            <button type="button" onclick="salvarRelato()">
+                Salvar consulta
+            </button>
+        </form>
+    </div>
+
+    <!-- ============================== -->
+    <!-- HISTÓRICO -->
+    <!-- ============================== -->
+    <div class="container historico-container">
+        <h2>Histórico de Registros</h2>
+        <div id="lista-historico">
+            <p style="text-align: center; font-style: italic;">
+                Nenhum registro anterior encontrado.
+            </p>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

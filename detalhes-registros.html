@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relato Completo - Psi.me</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body onload="carregarRegistroDetalhado()">
+    
+    <h1><a href="home.html">Psi.me</a></h1>
+    
+    <h1>Relato Completo</h1>
+    
+    <div class="container registro-detalhado">
+        <div id="conteudo-registro">
+            <p>Carregando relato...</p>
+        </div>
+        
+        <div class="botoes-acao">
+            <button onclick="window.history.back()" class="btn-voltar">
+                Voltar
+            </button>
+            <button onclick="window.print()" class="btn-imprimir">
+                Imprimir Relato
+            </button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

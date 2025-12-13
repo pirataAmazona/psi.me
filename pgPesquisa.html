@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesquisa de Pacientes - Psi.me</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <h1><a href="home.html">Psi.me</a></h1>
+    <p>Pesquisar e Acessar Pacientes</p>
+
+    <div class="container search-container">
+        <h2>Encontrar Paciente</h2>
+        <form id="form-pesquisa">
+            <label for="termoPesquisa">Nome ou CPF do Paciente</label>
+            <input type="text" id="termoPesquisa" name="termoPesquisa" placeholder="Digite o nome ou CPF" required>
+
+            <button type="submit" class="submit-btn">Buscar</button>
+        </form>
+    </div>
+
+    <div class="container" id="resultados-pesquisa" style="margin-top: 20px; max-width: 600px;">
+        <!-- O conteúdo será preenchido pelo JavaScript -->
+        <p style="text-align: center;">Carregando pacientes...</p>
+    </div>
+    
+    <!-- APENAS UM SCRIPT NO FINAL -->
+    <script src="script.js"></script>
+</body>
+</html>

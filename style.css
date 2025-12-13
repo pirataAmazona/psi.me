@@ -1,0 +1,445 @@
+/* ======================================= */
+/* 1. VARIÁVEIS E CONFIGURAÇÃO GLOBAL      */
+/* ======================================= */
+:root {
+    /* Cores da Logo e Paleta */
+    --cor-primaria: #2D7272;   /* Verde-azulado: Linhas, texto principal */
+    --cor-secundaria: #E57362; /* Coral/Salmão: Destaques, botões */
+    --cor-fundo: #F8F6F1;      /* Creme/Bege: Fundo suave */
+    --cor-texto: #4A4A4A;      /* Cinza: Texto geral */
+
+    /* Tipografia */
+    /* Escolhi 'Sacramento' do Google Fonts - Baixe ou link-a no HTML! */
+    --fonte-delicada: 'Sacramento', cursive;
+    --fonte-padrao: 'Poppins', sans-serif; /* Fonte de leitura mais clean */
+}
+
+/* Reset básico e fundo da página */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--fonte-padrao);
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* ======================================= */
+/* 2. TIPOGRAFIA E CABEÇALHOS              */
+/* ======================================= */
+h1, h2 {
+    font-family: var(--fonte-delicada);
+    color: var(--cor-primaria);
+    margin-bottom: 5px;
+    font-size: 3rem; /* Tamanho maior para a fonte cursiva */
+}
+
+p {
+    font-size: 1.1rem;
+    color: var(--cor-texto);
+    margin-bottom: 20px;
+}
+
+/* ======================================= */
+/* 3. CONTAINERS E FORMS GERAIS            */
+/* (Bloco atualizado para incluir 'email' e 'date') */
+/* ======================================= */
+
+/* Estilo da caixa principal do formulário */
+div, .container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px; /* Bordas arredondadas para delicadeza */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Sombra suave */
+    max-width: 400px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--cor-primaria);
+}
+
+input[type="text"], 
+input[type="password"],
+input[type="email"], /* Incluído para a página de cadastro do psicólogo */
+input[type="date"], /* Incluído para o campo Data de Nascimento */
+textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 2px solid var(--cor-fundo); /* Borda suave */
+    border-radius: 10px;
+    font-size: 1rem;
+    color: var(--cor-texto);
+    transition: border-color 0.3s;
+}
+
+input:focus, textarea:focus {
+    border-color: var(--cor-secundaria); /* Foco delicado */
+    outline: none;
+    box-shadow: 0 0 5px rgba(229, 115, 98, 0.3);
+}
+
+/* Os estilos para Botões (4.), Radio Buttons (5.) e Home (6.) permanecem os mesmos! */
+
+/* ======================================= */
+/* 4. BOTÕES E DESTAQUES                   */
+/* ======================================= */
+
+button, .submit-btn {
+    background-color: var(--cor-secundaria);
+    color: white;
+    padding: 14px 25px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    margin-top: 20px;
+    transition: background-color 0.3s, transform 0.2s;
+    font-weight: 600;
+}
+
+button:hover, .submit-btn:hover {
+    background-color: #d16454; /* Um tom ligeiramente mais escuro */
+    transform: translateY(-2px); /* Efeito sutil de levantar */
+}
+
+/* ======================================= */
+/* 5. ESTILOS ESPECÍFICOS POR PÁGINA       */
+/* ======================================= */
+
+/* --- pgDeEscolha.html (Radio Buttons) --- */
+.option-box {
+    display: flex;
+    align-items: center;
+    background-color: var(--cor-fundo);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.option-box:hover {
+    background-color: #edeae2;
+}
+
+.option-box input[type="radio"] {
+    appearance: none; /* Esconde o radio padrão */
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--cor-primaria);
+    border-radius: 50%;
+    margin-right: 15px;
+    position: relative;
+    cursor: pointer;
+}
+
+.option-box input[type="radio"]:checked:after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--cor-secundaria);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+}
+
+.option-box label {
+    margin: 0;
+    font-weight: normal;
+    color: var(--cor-texto);
+    cursor: pointer;
+}
+
+/* --- pgInicioAdc.html (Layout de Livro) --- */
+.book-container {
+    max-width: 800px;
+    display: flex;
+    gap: 20px;
+    background-color: white; /* Cor de fundo branca para contraste */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+}
+
+.book-page {
+    flex: 1;
+    padding: 15px;
+}
+
+/* Responsividade para o layout de livro */
+@media (max-width: 700px) {
+    .book-container {
+        flex-direction: column;
+        padding: 20px;
+    }
+}
+/* ======================================= */
+/* 6. ESTILOS ESPECÍFICOS PARA HOME        */
+/* ======================================= */
+
+/* Estilo para a opção de cadastro na página Home */
+.cadastro-link {
+    text-align: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee; /* Linha divisória sutil */
+    font-size: 0.95rem;
+    color: var(--cor-texto);
+}
+
+.cadastro-link a {
+    color: var(--cor-secundaria); /* Coral, cor de destaque */
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.cadastro-link a:hover {
+    color: var(--cor-primaria); /* Verde-azulado no hover */
+    text-decoration: underline;
+}
+/* ======================================= */
+/* 7. ESTILOS ESPECÍFICOS PARA PESQUISA    */
+/* ======================================= */
+
+.search-container {
+    max-width: 600px; /* Tornando o container de busca um pouco maior */
+}
+
+.paciente-card {
+    background-color: var(--cor-fundo); /* Fundo creme suave para o cartão */
+    border: 1px solid #e0ddd7;
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between; /* Distribui nome/cpf e botão */
+    align-items: center;
+}
+
+.paciente-nome {
+    font-weight: 600;
+    color: var(--cor-primaria);
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    flex-grow: 1; /* Ocupa o espaço restante */
+}
+
+.paciente-cpf {
+    color: var(--cor-texto);
+    font-size: 0.9rem;
+    margin-right: 20px;
+}
+
+.access-link {
+    background-color: transparent;
+    border: 1px solid var(--cor-secundaria);
+    color: var(--cor-secundaria);
+    padding: 8px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background-color 0.3s, color 0.3s;
+    font-weight: 500;
+}
+
+.access-link:hover {
+    background-color: var(--cor-secundaria);
+    color: white;
+}
+/* ======================================= */
+/* 8. ESTILOS ESPECÍFICOS PARA REGISTRO/PRONTUÁRIO */
+/* ======================================= */
+
+.form-consulta, .historico-container {
+    /* Centraliza e limita a largura desses containers */
+    max-width: 600px; 
+}
+
+.historico-container {
+    margin-top: 25px;
+}
+
+.historico-container h2 {
+    color: var(--cor-primaria);
+    margin-bottom: 25px;
+}
+
+.relato-card {
+    background-color: white;
+    border: 1px solid #e0ddd7;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03); /* Sombra bem leve */
+}
+
+.relato-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--cor-secundaria); /* Usa a cor coral para a data/hora */
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #f0e6e4; /* Linha pontilhada delicada */
+    font-weight: 500;
+}
+
+.relato-texto {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+    white-space: pre-wrap; /* Garante que as quebras de linha do relato sejam mantidas */
+}
+/* ======================================= */
+/* 9. ESTILO DO LINK DO TÍTULO PRINCIPAL   */
+/* ======================================= */
+
+h1 a {
+    text-decoration: none; /* ESSENCIAL: Remove o sublinhado */
+    color: var(--cor-primaria); /* Mantém a cor verde-azulado do título */
+    transition: opacity 0.3s;
+}
+
+h1 a:hover {
+    text-decoration: none; /* Garantia extra de que não sublinha ao passar o mouse */
+    opacity: 0.8; /* Efeito suave no hover */
+}
+/* ======================================= */
+/* ESTILOS ADICIONAIS PARA MELHOR VISUALIZAÇÃO */
+/* ======================================= */
+
+/* Melhorar visualização dos cards de paciente */
+.paciente-card {
+    background-color: white;
+    border: 1px solid #e8e8e8;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.paciente-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.paciente-nome {
+    font-weight: 600;
+    color: var(--cor-primaria);
+    margin-bottom: 5px;
+    font-size: 1.2rem;
+}
+
+.paciente-cpf {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+}
+
+/* Botão de acesso ao prontuário */
+.access-link {
+    background-color: var(--cor-secundaria);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+    margin-left: 15px;
+    display: inline-block;
+    text-align: center;
+    min-width: 140px;
+}
+
+.access-link:hover {
+    background-color: #d16454;
+    color: white;
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+    .paciente-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .access-link {
+        margin-left: 0;
+        margin-top: 15px;
+        width: 100%;
+    }
+    
+    .header-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .header-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* Estilos para os registros no histórico */
+.registro-item {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.registro-cabecalho {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: #666;
+    font-size: 14px;
+}
+
+.registro-texto {
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.btn-ver-mais {
+    background-color: #0077cc;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-ver-mais:hover {
+    background-color: #005fa3;
+}
