@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório do Paciente - Psi.me</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <!-- Biblioteca para gerar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Estilos específicos para relatório (otimizado para impressão) */
+        body {
+            background-color: white;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container-relatorio {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+        }
+        
+        /* Esconder na tela, mostrar na impressão */
+        .print-only {
+            display: none;
+        }
+        
+        @media print {
+            .print-only {
+                display: block;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .container-relatorio {
+                padding: 0;
+                box-shadow: none;
+                border: none;
+            }
+            body {
+                padding: 0;
+                background: white;
+            }
+        }
+        
+        /* Cabeçalho do relatório */
+        .cabecalho-relatorio {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--cor-primaria);
+        }
+        
+        .cabecalho-relatorio h1 {
+            color: var(--cor-primaria);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .cabecalho-relatorio p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        /* Seções do relatório */
+        .secao-relatorio {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+        }
+        
+        .secao-titulo {
+            background-color: var(--cor-fundo);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: var(--cor-primaria);
+            font-size: 1.3rem;
+            border-left: 4px solid var(--cor-secundaria);
+        }
+        
+        /* Tabelas de dados */
+        .tabela-dados {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .tabela-dados th {
+            background-color: var(--cor-fundo);
+            text-align: left;
+            padding: 12px 15px;
+            color: var(--cor-primaria);
+            font-weight: 600;
+            border-bottom: 2px solid var(--cor-primaria);
+        }
+        
+        .tabela-dados td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        
+        .tabela-dados tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        /* Informações em cards */
+        .info-card {
+            background-color: var(--cor-fundo);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--cor-secundaria);
+        }
+        
+        .info-card h3 {
+            color: var(--cor-primaria);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .info-item {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555;
+            min-width: 150px;
+        }
+        
+        .info-value {
+            color: #333;
+            flex: 1;
+        }
+        
+        /* Histórico de consultas */
+        .historico-item {
+            background-color: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            position: relative;
+            border-left: 3px solid var(--cor-secundaria);
+        }
+        
+        .historico-data {
+            color: var(--cor-secundaria);
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .historico-texto {
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .historico-texto::after {
+            content: '...';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: white;
+            padding: 0 5px;
+        }
+        
+        /* Resumo estatístico */
+        .resumo-estatistico {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .estatistica-card {
+            background-color: white;
+            border: 1px solid #eee;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+        
+        .estatistica-valor {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--cor-primaria);
+            margin: 10px 0;
+        }
+        
+        .estatistica-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Botões de ação */
+        .botoes-relatorio {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+        
+        .btn-relatorio {
+            padding: 12px 25px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 150px;
+        }
+        
+        .btn-relatorio:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .btn-voltar {
+            background-color: var(--cor-fundo);
+            color: var(--cor-primaria);
+            border: 2px solid var(--cor-primaria);
+        }
+        
+        .btn-voltar:hover {
+            background-color: var(--cor-primaria);
+            color: white;
+        }
+        
+        .btn-imprimir {
+            background-color: var(--cor-primaria);
+            color: white;
+        }
+        
+        .btn-imprimir:hover {
+            background-color: #265a5a;
+        }
+        
+        .btn-pdf {
+            background-color: var(--cor-secundaria);
+            color: white;
+        }
+        
+        .btn-pdf:hover {
+            background-color: #d16454;
+        }
+        
+        /* Footer do relatório */
+        .footer-relatorio {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .assinatura {
+            margin-top: 50px;
+            text-align: right;
+            padding-top: 50px;
+        }
+        
+        .linha-assinatura {
+            width: 300px;
+            border-top: 1px solid #333;
+            margin: 20px auto 10px;
+            display: inline-block;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container-relatorio {
+                padding: 20px;
+            }
+            
+            .resumo-estatistico {
+                grid-template-columns: 1fr;
+            }
+            
+            .botoes-relatorio {
+                flex-direction: column;
+            }
+            
+            .btn-relatorio {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .info-item {
+                flex-direction: column;
+            }
+            
+            .info-label {
+                min-width: auto;
+                margin-bottom: 5px;
+            }
+        }
+        
+        /* Para impressão */
+        @media print {
+            .secao-relatorio {
+                page-break-inside: avoid;
+            }
+            
+            .historico-item {
+                page-break-inside: avoid;
+            }
+        }
+        /* Estilo específico para PDF */
+@media print {
+    .secao-relatorio {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    .historico-item {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    .info-card {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    body {
+        font-size: 12pt !important;
+    }
+    
+    .container-relatorio {
+        padding: 20px !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Para a geração de PDF com html2pdf */
+.pdf-mode {
+    background-color: white !important;
+    color: black !important;
+}
+
+.pdf-mode .container-relatorio {
+    box-shadow: none !important;
+    border: none !important;
+}
+    </style>
+</head>
+<body>
+    <div class="container-relatorio">
+        <!-- Cabeçalho visível apenas na impressão -->
+        <div class="print-only" style="text-align: center; margin-bottom: 40px;">
+            <h2 style="color: var(--cor-primaria);">Psi.me - Sistema de Prontuário Psicológico</h2>
+            <p style="color: #666;">Relatório Confidencial - Uso Profissional</p>
+            <hr style="margin: 20px 0; border-color: #eee;">
+        </div>
+        
+        <!-- Cabeçalho principal -->
+        <div class="cabecalho-relatorio no-print">
+            <h1><a href="home.html" style="text-decoration: none; color: inherit;">Psi.me</a></h1>
+            <p>Relatório Completo do Paciente</p>
+        </div>
+        
+        <div class="cabecalho-relatorio print-only">
+            <h1>Relatório Psicológico</h1>
+            <p id="data-emissao">Data de emissão: Carregando...</p>
+        </div>
+        
+        <!-- Dados do Paciente -->
+        <div class="secao-relatorio">
+            <div class="secao-titulo">📋 Dados Pessoais do Paciente</div>
+            
+            <div class="info-card">
+                <div class="info-item">
+                    <span class="info-label">Nome Completo:</span>
+                    <span class="info-value" id="paciente-nome">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">CPF:</span>
+                    <span class="info-value" id="paciente-cpf">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Data de Nascimento:</span>
+                    <span class="info-value" id="paciente-nascimento">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Idade:</span>
+                    <span class="info-value" id="paciente-idade">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Telefone:</span>
+                    <span class="info-value" id="paciente-telefone">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">E-mail:</span>
+                    <span class="info-value" id="paciente-email">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Endereço:</span>
+                    <span class="info-value" id="paciente-endereco">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Posto de Atendimento:</span>
+                    <span class="info-value" id="paciente-posto">Carregando...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dados do Profissional -->
+        <div class="secao-relatorio">
+            <div class="secao-titulo">👨‍⚕️ Dados do Profissional Responsável</div>
+            
+            <div class="info-card">
+                <div class="info-item">
+                    <span class="info-label">Psicólogo(a):</span>
+                    <span class="info-value" id="psicologo-nome">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">CRP:</span>
+                    <span class="info-value" id="psicologo-crp">Carregando...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">E-mail:</span>
+                    <span class="info-value" id="psicologo-email">Carregando...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resumo Estatístico -->
+        <div class="secao-relatorio">
+            <div class="secao-titulo">📊 Resumo do Atendimento</div>
+            
+            <div class="resumo-estatistico">
+                <div class="estatistica-card">
+                    <div class="estatistica-valor" id="total-consultas">0</div>
+                    <div class="estatistica-label">Total de Consultas</div>
+                </div>
+                <div class="estatistica-card">
+                    <div class="estatistica-valor" id="primeira-consulta">-</div>
+                    <div class="estatistica-label">Primeira Consulta</div>
+                </div>
+                <div class="estatistica-card">
+                    <div class="estatistica-valor" id="ultima-consulta">-</div>
+                    <div class="estatistica-label">Última Consulta</div>
+                </div>
+                <div class="estatistica-card">
+                    <div class="estatistica-valor" id="frequencia">-</div>
+                    <div class="estatistica-label">Frequência</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Histórico Resumido -->
+        <div class="secao-relatorio">
+            <div class="secao-titulo">📅 Histórico de Consultas</div>
+            
+            <div id="lista-consultas">
+                <p style="text-align: center; padding: 30px; color: #666;">Carregando histórico de consultas...</p>
+            </div>
+            
+            <div class="print-only">
+                <p><em>Este relatório apresenta um resumo das últimas consultas. Para relatos completos, consulte o prontuário digital.</em></p>
+            </div>
+        </div>
+        
+        <!-- Observações -->
+        <div class="secao-relatorio">
+            <div class="secao-titulo">💭 Observações Gerais</div>
+            
+            <div class="info-card">
+                <div class="info-item">
+                    <span class="info-label">Observações Cadastrais:</span>
+                    <span class="info-value" id="paciente-obs">Nenhuma observação registrada.</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer e Assinatura -->
+        <div class="footer-relatorio print-only">
+            <div class="assinatura">
+                <p>________________________________________</p>
+                <p id="psicologo-assinatura">Carregando nome do psicólogo...</p>
+                <p>CRP: <span id="psicologo-crp-assinatura">Carregando...</span></p>
+            </div>
+            
+            <div style="margin-top: 50px; font-size: 0.8rem; color: #999;">
+                <p>Documento gerado automaticamente pelo sistema Psi.me</p>
+                <p>Data de emissão: <span id="data-geracao">Carregando...</span></p>
+                <p>Este documento é confidencial e destinado apenas para uso profissional.</p>
+            </div>
+        </div>
+        
+        <!-- Botões de Ação -->
+        <div class="botoes-relatorio no-print">
+            <button class="btn-relatorio btn-imprimir" onclick="imprimirRelatorio()">
+                🖨️ Imprimir Relatório
+            </button>
+            <button class="btn-relatorio btn-pdf" onclick="gerarPDF()">
+                📄 Gerar PDF
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // ================================================
+        // CONFIGURAÇÃO DO SUPABASE
+        // ================================================
+        const SUPABASE_URL = 'https://kvsdsercsgezcdymihjx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2c2RzZXJjc2dlemNkeW1paGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1ODcwOTIsImV4cCI6MjA4MTE2MzA5Mn0.zpcV9L44zRtWlMJlYCK_VIaNSitIpagoGT37IBonq6w';
+        
+        let supabase = null;
+        let pacienteInfo = null;
+        let psicologoInfo = null;
+        let consultas = [];
+        
+        // ================================================
+        // FUNÇÕES PRINCIPAIS
+        // ================================================
+        
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarSupabase();
+            carregarRelatorio();
+        });
+        
+        // 1. Inicializar conexão com Supabase
+        function inicializarSupabase() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase inicializado para relatório');
+            } catch (e) {
+                console.error('❌ Erro ao inicializar Supabase:', e);
+                mostrarErro('Erro de conexão com o banco de dados.');
+            }
+        }
+        
+        // 2. Carregar todos os dados do relatório
+        async function carregarRelatorio() {
+            // Pegar ID do paciente da URL ou localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            let pacienteId = urlParams.get('pacienteId');
+            
+            if (!pacienteId) {
+                // Tentar pegar do localStorage
+                const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+                pacienteId = pacienteStorage.id;
+            }
+            
+            if (!pacienteId) {
+                mostrarErro('Nenhum paciente selecionado.');
+                return;
+            }
+            
+            try {
+                // Mostrar loading
+                mostrarLoading();
+                
+                // Carregar dados do paciente
+                await carregarDadosPaciente(pacienteId);
+                
+                // Carregar dados do psicólogo logado
+                await carregarDadosPsicologo();
+                
+                // Carregar consultas do paciente
+                await carregarConsultas(pacienteId);
+                
+                // Calcular estatísticas
+                calcularEstatisticas();
+                
+                // Atualizar data de emissão
+                atualizarDataEmissao();
+                
+            } catch (erro) {
+                console.error('Erro ao carregar relatório:', erro);
+                mostrarErro('Erro ao carregar os dados do relatório.');
+            }
+        }
+        
+        // 3. Carregar dados do paciente
+        async function carregarDadosPaciente(pacienteId) {
+            console.log('Carregando dados do paciente ID:', pacienteId);
+            
+            const { data: paciente, error } = await supabase
+                .from('pacientes')
+                .select('*')
+                .eq('id', pacienteId)
+                .single();
+            
+            if (error) {
+                throw new Error('Erro ao carregar paciente: ' + error.message);
+            }
+            
+            pacienteInfo = paciente;
+            
+            // Atualizar interface
+            document.getElementById('paciente-nome').textContent = paciente.nome || 'Não informado';
+            document.getElementById('paciente-cpf').textContent = formatarCPF(paciente.cpf) || 'Não informado';
+            document.getElementById('paciente-nascimento').textContent = formatarData(paciente.nascimento) || 'Não informado';
+            document.getElementById('paciente-idade').textContent = calcularIdade(paciente.nascimento) || 'Não informado';
+            document.getElementById('paciente-telefone').textContent = formatarTelefone(paciente.telefone) || 'Não informado';
+            document.getElementById('paciente-email').textContent = paciente.email || 'Não informado';
+            document.getElementById('paciente-endereco').textContent = paciente.endereco || 'Não informado';
+            document.getElementById('paciente-posto').textContent = paciente.posto || 'Não informado';
+            document.getElementById('paciente-obs').textContent = paciente.obs || 'Nenhuma observação registrada.';
+            
+            // Para impressão também
+            document.getElementById('psicologo-assinatura').textContent = psicologoInfo?.nome_completo || 'Carregando...';
+            document.getElementById('psicologo-crp-assinatura').textContent = psicologoInfo?.crp || 'Carregando...';
+        }
+        
+        // 4. Carregar dados do psicólogo
+        async function carregarDadosPsicologo() {
+            // Primeiro tenta pegar do localStorage (sessão)
+            const sessao = sessionStorage.getItem('psi_me_sessao') || localStorage.getItem('psi_me_sessao');
+            
+            if (!sessao) {
+                throw new Error('Nenhum psicólogo logado.');
+            }
+            
+            const psicologoLogado = JSON.parse(sessao);
+            
+            // Buscar dados completos do psicólogo
+            const { data: psicologo, error } = await supabase
+                .from('psicologos')
+                .select('*')
+                .eq('id', psicologoLogado.id)
+                .single();
+            
+            if (error) {
+                throw new Error('Erro ao carregar psicólogo: ' + error.message);
+            }
+            
+            psicologoInfo = psicologo;
+            
+            // Atualizar interface
+            document.getElementById('psicologo-nome').textContent = psicologo.nome_completo || 'Não informado';
+            document.getElementById('psicologo-crp').textContent = `${psicologo.crp}/${psicologo.estado_crp}` || 'Não informado';
+            document.getElementById('psicologo-email').textContent = psicologo.email || 'Não informado';
+            
+            // Para impressão
+            document.getElementById('psicologo-assinatura').textContent = psicologo.nome_completo || '';
+            document.getElementById('psicologo-crp-assinatura').textContent = `${psicologo.crp}/${psicologo.estado_crp}` || '';
+        }
+        
+        // 5. Carregar consultas do paciente
+        async function carregarConsultas(pacienteId) {
+            const { data: consultasData, error } = await supabase
+                .from('consultas')
+                .select('*')
+                .eq('paciente_id', pacienteId)
+                .order('data_consulta', { ascending: false });
+            
+            if (error) {
+                console.warn('Erro ao carregar consultas:', error);
+                consultas = [];
+                return;
+            }
+            
+            consultas = consultasData || [];
+            
+            // Exibir histórico na interface
+            exibirHistoricoConsultas();
+        }
+        
+        // 6. Exibir histórico de consultas
+        function exibirHistoricoConsultas() {
+            const container = document.getElementById('lista-consultas');
+            
+            if (!consultas || consultas.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #666; background-color: #f9f9f9; border-radius: 10px;">
+                        <p>Nenhuma consulta registrada para este paciente.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            // Mostrar apenas as últimas 5 consultas no relatório
+            const consultasExibir = consultas.slice(0, 5);
+            
+            consultasExibir.forEach(consulta => {
+                const data = new Date(consulta.data_consulta);
+                const dataFormatada = data.toLocaleDateString('pt-BR');
+                const horaFormatada = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                // Resumo do relato (máximo 200 caracteres)
+                const relatoResumido = consulta.relato.length > 200 ? 
+                    consulta.relato.substring(0, 200) + '...' : 
+                    consulta.relato;
+                
+                html += `
+                <div class="historico-item">
+                    <div class="historico-data">
+                        <span>${dataFormatada}</span>
+                        <span>${horaFormatada}</span>
+                    </div>
+                    <div class="historico-texto">
+                        ${relatoResumido.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+                `;
+            });
+            
+            if (consultas.length > 5) {
+                html += `
+                <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: var(--cor-fundo); border-radius: 8px;">
+                    <p style="color: #666; margin: 0;">
+                        + ${consultas.length - 5} consultas anteriores não exibidas neste resumo.
+                    </p>
+                </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // 7. Calcular estatísticas
+        function calcularEstatisticas() {
+            if (!consultas || consultas.length === 0) {
+                document.getElementById('total-consultas').textContent = '0';
+                document.getElementById('primeira-consulta').textContent = '-';
+                document.getElementById('ultima-consulta').textContent = '-';
+                document.getElementById('frequencia').textContent = '-';
+                return;
+            }
+            
+            // Total de consultas
+            document.getElementById('total-consultas').textContent = consultas.length;
+            
+            // Primeira consulta (mais antiga)
+            const primeiraConsulta = consultas.reduce((antiga, atual) => {
+                return new Date(antiga.data_consulta) < new Date(atual.data_consulta) ? antiga : atual;
+            });
+            document.getElementById('primeira-consulta').textContent = formatarData(primeiraConsulta.data_consulta);
+            
+            // Última consulta (mais recente)
+            const ultimaConsulta = consultas[0];
+            document.getElementById('ultima-consulta').textContent = formatarData(ultimaConsulta.data_consulta);
+            
+            // Calcular frequência (consultas por mês)
+            if (consultas.length > 1) {
+                const primeiraData = new Date(primeiraConsulta.data_consulta);
+                const ultimaData = new Date(ultimaConsulta.data_consulta);
+                
+                const diffMeses = (ultimaData.getFullYear() - primeiraData.getFullYear()) * 12 + 
+                                 (ultimaData.getMonth() - primeiraData.getMonth());
+                
+                if (diffMeses > 0) {
+                    const frequencia = (consultas.length / diffMeses).toFixed(1);
+                    document.getElementById('frequencia').textContent = `${frequencia}/mês`;
+                } else {
+                    document.getElementById('frequencia').textContent = `${consultas.length} consultas`;
+                }
+            } else {
+                document.getElementById('frequencia').textContent = '1 consulta';
+            }
+        }
+        
+        // 8. Atualizar data de emissão
+        function atualizarDataEmissao() {
+            const agora = new Date();
+            const dataFormatada = agora.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            document.getElementById('data-emissao').textContent = `Data de emissão: ${dataFormatada}`;
+            document.getElementById('data-geracao').textContent = dataFormatada;
+        }
+        
+        // 9. Funções de formatação
+        function formatarCPF(cpf) {
+            if (!cpf) return '';
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        
+        function formatarTelefone(telefone) {
+            if (!telefone) return '';
+            if (telefone.length === 11) {
+                return telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            } else if (telefone.length === 10) {
+                return telefone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+            }
+            return telefone;
+        }
+        
+        function formatarData(dataString) {
+            if (!dataString) return '';
+            const data = new Date(dataString);
+            return data.toLocaleDateString('pt-BR');
+        }
+        
+        function calcularIdade(dataNascimento) {
+            if (!dataNascimento) return '';
+            const nascimento = new Date(dataNascimento);
+            const hoje = new Date();
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+            const mes = hoje.getMonth() - nascimento.getMonth();
+            
+            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                idade--;
+            }
+            
+            return `${idade} anos`;
+        }
+        
+        // 10. Funções de Ação
+        function voltarParaPesquisa() {
+            window.history.back();
+        }
+        
+        function imprimirRelatorio() {
+            window.print();
+        }
+        
+        async function gerarPDF() {
+    const element = document.querySelector('.container-relatorio');
+    
+    // Adiciona classe para modo PDF
+    element.classList.add('pdf-mode');
+    
+    const opt = {
+        margin:       0.5,
+        filename:     `relatorio_${pacienteInfo?.nome || 'paciente'}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#FFFFFF'
+        },
+        jsPDF:        { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait',
+            compress: true
+        }
+    };
+    
+    // Mostrar loading
+    const btnPDF = document.querySelector('.btn-pdf');
+    const originalText = btnPDF.innerHTML;
+    btnPDF.innerHTML = '⏳ Gerando PDF...';
+    btnPDF.disabled = true;
+    
+    try {
+        // Pequeno delay para aplicar os estilos
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Gerar PDF
+        await html2pdf().set(opt).from(element).save();
+        
+    } catch (erro) {
+        console.error('Erro ao gerar PDF:', erro);
+        alert('Erro ao gerar PDF. Você pode usar a opção de imprimir.');
+    } finally {
+        // Remover classe do modo PDF
+        element.classList.remove('pdf-mode');
+        
+        btnPDF.innerHTML = originalText;
+        btnPDF.disabled = false;
+    }
+}
+        
+        // 11. Funções auxiliares
+        function mostrarLoading() {
+            // Pode adicionar um spinner se quiser
+        }
+        
+        function mostrarErro(mensagem) {
+            alert('Erro: ' + mensagem);
+        }
+    </script>
+</body>
+</html>

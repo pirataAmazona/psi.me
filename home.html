@@ -7,43 +7,45 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&family=Georgia&display=swap" rel="stylesheet"> 
 
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <h1><a href="home.html">Psi.me</a></h1>
-    <p>Faça login para acessar seu consultório</p>
-
-    <div class="container">
-        <form id="form-login">
-            <label for="email">Email</label><br>
-            <input type="email" id="email" name="email" required><br>
-
-            <label for="senha">Senha</label><br>
-            <input type="password" id="senha" name="senha" required>
-            
-            <div style="margin: 15px 0;">
-                <label>
-                    <input type="checkbox" id="lembrar-me">
-                    Lembrar-me
-                </label>
-            </div>
-
-            <button type="button" onclick="fazerLogin()">Entrar</button>
-            
-            <div style="text-align: center; margin-top: 20px;">
-                <a href="#" onclick="esqueciSenha(); return false;" style="color: var(--cor-secundaria); text-decoration: none;">
-                    Esqueci minha senha
-                </a>
-            </div>
-        </form>
+<body class="no-scroll"> <div class="home-grid">
         
-        <p class="cadastro-link">
-            Não possui cadastro? <a href="cadastro_profissional.html">Cadastre-se aqui</a>
-        </p>
-        
+        <div class="intro-column">
+            <h1><a href="home.html">Psi.me</a></h1>
+            <h2>Seu painel de cuidado</h2> <p class="intro-text">
+                Simplifique sua rotina clínica e eleve o foco do seu trabalho. O Psi.me é a solução inteligente e segura, desenhada por psicólogos para psicólogos, garantindo que a gestão de prontuários seja tão humanizada quanto o seu atendimento.
+            </p>
+        </div>
+
+        <div class="container login-container">
+            <h3>Fazer Login</h3>
+            <form id="form-login">
+                <label for="email">Email</label><br>
+                <input type="email" id="email" name="email" required><br>
+
+                <label for="senha">Senha</label><br>
+                <input type="password" id="senha" name="senha" required>
+            
+
+                <button type="button" onclick="fazerLogin()">Entrar</button>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="#" onclick="esqueciSenha(); return false;" style="color: var(--cor-secundaria); text-decoration: none;">
+                        Esqueci minha senha
+                    </a>
+                </div>
+            </form>
+            
+            <p class="cadastro-link">
+                Não possui cadastro? <a href="cadastro_profissional.html">Cadastre-se aqui</a>
+            </p>
+            
+        </div>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

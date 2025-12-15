@@ -6,6 +6,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let supabase = null;
 let psicologoLogado = null;
+let modalRelato = null;
+let modalAberto = false;
 
 // ===============================================
 // 2. INICIALIZAÇÃO DO SUPABASE
@@ -22,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Configurar eventos
             configurarEventosPorPagina();
             configurarMascaras();
+            
+            // Inicializar contadores
+            inicializarContadores();
         } else {
             console.error('❌ Supabase não carregado.');
         }
@@ -543,7 +548,7 @@ function configurarEventosPorPagina() {
         btnCadastrarPaciente.onclick = cadastrarNovoPaciente;
     }
     
-    // Página de Pesquisa (pgPesquisa.html)
+    // Página de Pesquisa (pgPesquisa.html) - ATUALIZADA
     const formPesquisa = document.getElementById('form-pesquisa');
     if (formPesquisa) {
         formPesquisa.addEventListener('submit', function(e) {
@@ -551,8 +556,26 @@ function configurarEventosPorPagina() {
             pesquisarPacientes();
         });
         
-        // Carrega todos os pacientes quando a página carrega
-        carregarTodosPacientes();
+        // Adicionar evento para limpar resultados quando campo estiver vazio
+        const termoInput = document.getElementById('termoPesquisa');
+        if (termoInput) {
+            termoInput.addEventListener('input', function(e) {
+                if (e.target.value.trim() === '') {
+                    limparResultadosPesquisa();
+                }
+            });
+        }
+    }
+    
+    // Adicionar atalho Enter no campo de pesquisa
+    const termoPesquisa = document.getElementById('termoPesquisa');
+    if (termoPesquisa) {
+        termoPesquisa.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                pesquisarPacientes();
+            }
+        });
     }
     
     // Página de Prontuário (registro.html)
@@ -609,7 +632,7 @@ function adicionarBotaoLogout() {
 }
 
 // ===============================================
-// 7. FUNÇÕES DE PACIENTE (atualizadas para incluir psicólogo)
+// 7. FUNÇÕES DE PACIENTE
 // ===============================================
 async function cadastrarNovoPaciente() {
     if (!supabase) {
@@ -698,35 +721,23 @@ async function cadastrarNovoPaciente() {
 }
 
 // ===============================================
-// 8. FUNÇÕES DE PESQUISA DE PACIENTES
+// 8. FUNÇÕES DE PESQUISA DE PACIENTES (ATUALIZADAS)
 // ===============================================
-async function carregarTodosPacientes() {
-    if (!supabase || !psicologoLogado) return;
-    
+
+// NOVA FUNÇÃO: LIMPAR RESULTADOS DA PESQUISA
+function limparResultadosPesquisa() {
     const resultadosDiv = document.getElementById('resultados-pesquisa');
-    if (!resultadosDiv) return;
-    
-    resultadosDiv.innerHTML = '<p style="text-align: center;">Carregando pacientes...</p>';
-    
-    try {
-        // Buscar apenas pacientes do psicólogo logado
-        const { data: pacientes, error } = await supabase
-            .from('pacientes')
-            .select('*')
-            .eq('psicologo_id', psicologoLogado.id)
-            .order('nome', { ascending: true });
-        
-        if (error) {
-            console.error('Erro ao carregar:', error);
-            resultadosDiv.innerHTML = `<p style="color: red;">Erro ao carregar: ${error.message}</p>`;
-            return;
-        }
-        
-        exibirResultados(pacientes);
-        
-    } catch (erro) {
-        console.error('Erro inesperado:', erro);
-        resultadosDiv.innerHTML = `<p style="color: red;">Erro inesperado</p>`;
+    if (resultadosDiv) {
+        resultadosDiv.innerHTML = `
+            <div class="texto-centralizado" style="padding: 40px;">
+                <p style="color: var(--cor-texto); font-size: 1.1rem;">
+                    Digite um nome ou CPF para pesquisar pacientes
+                </p>
+                <p style="color: var(--cor-texto-claro); font-size: 0.95rem; margin-top: 10px;">
+                    Os resultados aparecerão aqui após a pesquisa
+                </p>
+            </div>
+        `;
     }
 }
 
@@ -742,7 +753,22 @@ async function pesquisarPacientes() {
     
     if (!resultadosDiv) return;
     
-    resultadosDiv.innerHTML = '<p style="text-align: center;">Buscando...</p>';
+    // Validação: precisa ter pelo menos 2 caracteres para pesquisar
+    if (!termo || termo.length < 2) {
+        resultadosDiv.innerHTML = `
+            <div class="texto-centralizado" style="padding: 40px;">
+                <p style="color: var(--cor-alerta); font-size: 1.1rem;">
+                    Digite pelo menos 2 caracteres para pesquisar
+                </p>
+                <p style="color: var(--cor-texto-claro); font-size: 0.95rem; margin-top: 10px;">
+                    Exemplo: "Maria" ou "123.456.789-00"
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    resultadosDiv.innerHTML = '<div style="text-align: center; padding: 30px;"><p>🔍 Buscando pacientes...</p></div>';
     
     try {
         let query = supabase
@@ -750,61 +776,96 @@ async function pesquisarPacientes() {
             .select('*')
             .eq('psicologo_id', psicologoLogado.id);
         
-        if (termo && termo.length > 0) {
-            // Buscar por nome ou CPF
-            query = query.or(`nome.ilike.%${termo}%,cpf.ilike.%${termo}%`);
-        }
+        // Buscar por nome ou CPF
+        query = query.or(`nome.ilike.%${termo}%,cpf.ilike.%${termo}%`);
         
         const { data: pacientes, error } = await query.order('nome', { ascending: true });
         
         if (error) {
             console.error('Erro na pesquisa:', error);
-            resultadosDiv.innerHTML = `<p style="color: red;">Erro na busca: ${error.message}</p>`;
+            resultadosDiv.innerHTML = `
+                <div class="texto-centralizado" style="padding: 40px;">
+                    <p style="color: var(--cor-alerta);">Erro na busca: ${error.message}</p>
+                    <button onclick="pesquisarPacientes()" class="btn-pequeno margem-superior">
+                        Tentar novamente
+                    </button>
+                </div>
+            `;
             return;
         }
         
-        exibirResultados(pacientes);
+        exibirResultados(pacientes, termo);
         
     } catch (erro) {
         console.error('Erro inesperado:', erro);
-        resultadosDiv.innerHTML = `<p style="color: red;">Erro inesperado</p>`;
+        resultadosDiv.innerHTML = `
+            <div class="texto-centralizado" style="padding: 40px;">
+                <p style="color: var(--cor-alerta);">Erro inesperado ao buscar pacientes</p>
+                    <button onclick="pesquisarPacientes()" class="btn-pequeno margem-superior">
+                        Tentar novamente
+                    </button>
+                </div>
+        `;
     }
 }
 
-function exibirResultados(pacientes) {
+function exibirResultados(pacientes, termoPesquisa = '') {
     const resultadosDiv = document.getElementById('resultados-pesquisa');
     if (!resultadosDiv) return;
     
     if (!pacientes || pacientes.length === 0) {
         resultadosDiv.innerHTML = `
-            <h3>Resultados da Pesquisa</h3>
-            <div style="text-align: center; color: var(--cor-texto); padding: 40px;">
-                Nenhum paciente encontrado.
+            <div class="container-livro">
+                <div class="texto-centralizado" style="padding: 50px;">
+                    <p style="color: var(--cor-texto); font-size: 1.1rem;">
+                        Nenhum paciente encontrado para: "<strong>${termoPesquisa}</strong>"
+                    </p>
+                    <p style="color: var(--cor-texto-claro); font-size: 0.95rem; margin-top: 10px;">
+                        Tente buscar por nome completo ou CPF
+                    </p>
+                </div>
             </div>
         `;
         return;
     }
     
-    let html = `<h3>Resultados da Pesquisa (${pacientes.length})</h3>`;
+    let html = `
+        <div class="container-livro">
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: var(--cor-secundaria);">
+                    Resultados para: "${termoPesquisa}" (${pacientes.length} encontrados)
+                </h3>
+            </div>
+            <div class="grid-colunas">
+    `;
     
     pacientes.forEach(paciente => {
-        // Formatar CPF para exibição
         const cpfFormatado = paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        const dataNasc = new Date(paciente.nascimento).toLocaleDateString('pt-BR');
         
         html += `
-        <div class="paciente-card">
-            <div>
-                <p class="paciente-nome">${paciente.nome}</p>
-                <p class="paciente-cpf">CPF: ${cpfFormatado}</p>
-                <p style="font-size: 0.9rem; color: #666;">Nasc: ${new Date(paciente.nascimento).toLocaleDateString('pt-BR')}</p>
+            <div class="coluna">
+                <div class="paciente-info">
+                    <h4 style="color: var(--cor-primaria); margin-bottom: 10px;">${paciente.nome}</h4>
+                    <p style="color: #7f8c8d; font-size: 0.9rem;">
+                        📄 CPF: ${cpfFormatado}<br>
+                        🎂 Nascimento: ${dataNasc}<br>
+                        📞 ${paciente.telefone || 'Não informado'}<br>
+                        📧 ${paciente.email || 'Não informado'}
+                    </p>
+                </div>
+                <div style="margin-top: 20px;">
+                    <!-- APENAS BOTÃO DE ACESSAR PRONTUÁRIO -->
+                    <button onclick="acessarProntuario(${paciente.id}, '${paciente.nome.replace(/'/g, "\\'")}')"
+                            class="largura-total">
+                        📋 Acessar Prontuário
+                    </button>
+                </div>
             </div>
-            <a href="#" class="access-link" onclick="acessarProntuario(${paciente.id}, '${paciente.nome.replace(/'/g, "\\'")}'); return false;">
-                Acessar Prontuário
-            </a>
-        </div>
         `;
     });
     
+    html += `</div></div>`;
     resultadosDiv.innerHTML = html;
 }
 
@@ -933,6 +994,10 @@ function salvarRelatoLocal(pacienteId, relatoTexto, sincronizado = false) {
     setRegistros(registros);
 }
 
+// ===============================================
+// 10. FUNÇÕES DE HISTÓRICO
+// ===============================================
+
 async function carregarHistorico() {
     const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
     const pacienteId = pacienteInfo.id;
@@ -981,14 +1046,22 @@ async function carregarHistorico() {
                 minute: '2-digit' 
             });
             
+            // Resumo do texto (apenas primeiros 200 caracteres)
+            const textoResumido = consulta.relato.length > 200 ? 
+                consulta.relato.substring(0, 200) + '...' : 
+                consulta.relato;
+            
             html += `
-            <div class="relato-card">
+            <div class="relato-card" style="cursor: pointer;" 
+                 onclick="abrirRelatoCompleto('${consulta.id}', '${dataFormatada}', '${horaFormatada}')">
                 <div class="relato-header">
                     <span>${dataFormatada}</span>
                     <span>${horaFormatada}</span>
-                    <span style="color: var(--cor-primaria); font-size: 0.8rem;">(Supabase)</span>
+                    <span style="color: var(--cor-secundaria); font-size: 0.9rem; margin-left: 10px;">📖 Clique para ver completo</span>
                 </div>
-                <p class="relato-texto">${consulta.relato.replace(/\n/g, '<br>')}</p>
+                <p class="relato-texto" style="color: #666; margin-top: 10px;">
+                    ${textoResumido.replace(/\n/g, '<br>')}
+                </p>
             </div>
             `;
         });
@@ -1027,16 +1100,25 @@ function carregarHistoricoLocal(pacienteId) {
     
     let html = '';
     registros[pacienteId].forEach(registro => {
+        // Resumo do texto (apenas primeiros 200 caracteres)
+        const textoResumido = registro.texto.length > 200 ? 
+            registro.texto.substring(0, 200) + '...' : 
+            registro.texto;
+        
         html += `
-        <div class="relato-card">
+        <div class="relato-card" style="cursor: pointer;" 
+             onclick="abrirRelatoCompleto('local_${Date.now()}', '${registro.data}', '${registro.hora}', \`${registro.texto.replace(/`/g, '\\`')}\`)">
             <div class="relato-header">
                 <span>${registro.data}</span>
                 <span>${registro.hora}</span>
+                <span style="color: var(--cor-secundaria); font-size: 0.9rem; margin-left: 10px;">📖 Clique para ver completo</span>
                 ${registro.sincronizado === false ? 
                     '<span style="color: orange; font-size: 0.8rem;">(Não sincronizado)</span>' : 
                     '<span style="color: green; font-size: 0.8rem;">(Local)</span>'}
             </div>
-            <p class="relato-texto">${registro.texto.replace(/\n/g, '<br>')}</p>
+            <p class="relato-texto" style="color: #666; margin-top: 10px;">
+                ${textoResumido.replace(/\n/g, '<br>')}
+            </p>
         </div>
         `;
     });
@@ -1145,8 +1227,39 @@ function atualizarRegistrosLocaisComSupabase(consultasSupabase, pacienteId) {
     setRegistros(registros);
 }
 
+function abrirRelatorioCompleto() {
+    const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+    
+    if (pacienteStorage.id) {
+        // Abre a página de relatório passando o ID do paciente
+        window.open(`relatorio_paciente.html?pacienteId=${pacienteStorage.id}`, '_blank');
+    } else {
+        alert('Nenhum paciente selecionado para gerar relatório.');
+    }
+    
+    // Codificar parâmetros para URL
+    const textoCodificado = texto ? encodeURIComponent(texto) : '';
+    const dataHora = encodeURIComponent(`${data} às ${hora}`);
+    
+    // Montar URL
+    let url = `pg_relato.html?data=${dataHora}`;
+    
+    // Adicionar ID se tiver
+    if (relatoId && !relatoId.startsWith('local_')) {
+        url += `&id=${relatoId}`;
+    }
+    
+    // Adicionar texto se tiver (para relatos locais)
+    if (textoCodificado) {
+        url += `&texto=${textoCodificado}`;
+    }
+    
+    // Abrir em nova aba
+    window.open(url, '_blank');
+}
+
 // ===============================================
-// 10. FUNÇÕES DE NAVEGAÇÃO
+// 12. FUNÇÕES DE NAVEGAÇÃO
 // ===============================================
 function acessarSistema() {
     // Redireciona para fazer login
@@ -1180,7 +1293,7 @@ function continuarAcao() {
 }
 
 // ===============================================
-// 11. FUNÇÕES DE TESTE
+// 13. FUNÇÕES DE TESTE
 // ===============================================
 async function testarConexaoSupabase() {
     if (!supabase) {
@@ -1208,18 +1321,7 @@ async function testarConexaoSupabase() {
     }
 }
 
-// Inicializa teste de conexão quando a página carrega
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            testarConexaoSupabase();
-        }, 1000);
-    });
-} else {
-    setTimeout(() => {
-        testarConexaoSupabase();
-    }, 1000);
-    // Função para carregar o registro detalhado na página de detalhes
+// Função para carregar o registro detalhado na página de detalhes
 async function carregarRegistroDetalhado() {
     const registroId = localStorage.getItem('registroSelecionado');
     
@@ -1256,4 +1358,602 @@ async function carregarRegistroDetalhado() {
         </div>
     `;
 }
+
+// ===============================================
+// 14. INICIALIZAÇÃO DE TESTE
+// ===============================================
+
+// Inicializa teste de conexão quando a página carrega
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            testarConexaoSupabase();
+        }, 1000);
+    });
+} else {
+    setTimeout(() => {
+        testarConexaoSupabase();
+    }, 1000);
 }
+
+// Variáveis Globais para o Carrossel
+let slideIndex = 0;
+let totalSlides = 0;
+
+/**
+ * Atualiza a posição do carrossel.
+ * @param {number} n - 1 para avançar, -1 para voltar.
+ */
+function mudarSlide(n) {
+    slideIndex += n;
+    const wrapper = document.getElementById('historico-wrapper');
+    
+    // Garante que o índice não saia dos limites
+    if (slideIndex >= totalSlides) {
+        slideIndex = 0; // Volta para o primeiro
+    }
+    if (slideIndex < 0) {
+        slideIndex = totalSlides - 1; // Vai para o último
+    }
+    
+    // Calcula a translação horizontal necessária
+    wrapper.style.transform = `translateX(${-slideIndex * 100}%)`;
+}
+
+// ===============================================
+// FUNÇÃO PARA ADICIONAR BOTÃO DE VOLTAR EM TODAS AS PÁGINAS
+// ===============================================
+function adicionarBotaoVoltarGlobal() {
+    // Não adiciona botão de voltar nas páginas iniciais
+    if (window.location.pathname.includes('home.html') || 
+        window.location.pathname.includes('cadastro_profissional.html')) {
+        return;
+    }
+    
+    // Verifica se já existe um botão de voltar
+    if (document.querySelector('.btn-voltar-global')) return;
+    
+    // Determina a página de destino baseada na página atual
+    let destino = 'javascript:history.back()';
+    let texto = '← Voltar';
+    
+    if (window.location.pathname.includes('pgPesquisa.html')) {
+        destino = 'pgDeEscolha.html';
+        texto = '← Voltar';
+    } else if (window.location.pathname.includes('registro.html')) {
+        destino = 'pgPesquisa.html';
+        texto = '← Voltar';
+    } else if (window.location.pathname.includes('pgInicioAdc.html')) {
+        destino = 'pgDeEscolha.html';
+        texto = '← Voltar';
+    } else if (window.location.pathname.includes('pgDeEscolha.html')) {
+        destino = 'home.html';
+        texto = '← Sair';
+    }
+    
+    // Cria o botão
+    const btnVoltar = document.createElement('a');
+    btnVoltar.className = 'btn-voltar-global';
+    btnVoltar.href = destino;
+    btnVoltar.innerHTML = texto;
+    btnVoltar.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background-color: transparent;
+        color: var(--cor-secundaria);
+        border: 1px solid var(--cor-secundaria);
+        padding: 8px 15px;
+        border-radius: 10px;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        z-index: 1000;
+    `;
+    
+    // Adiciona hover effect
+    btnVoltar.onmouseover = function() {
+        this.style.backgroundColor = 'var(--cor-secundaria)';
+        this.style.color = 'white';
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+    };
+    
+    btnVoltar.onmouseout = function() {
+        this.style.backgroundColor = 'transparent';
+        this.style.color = 'var(--cor-secundaria)';
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = 'none';
+    };
+    
+    document.body.appendChild(btnVoltar);
+    
+    // Ajusta margem do título para não sobrepor
+    const h1 = document.querySelector('h1');
+    if (h1) {
+        h1.style.marginTop = '60px';
+    }
+}
+
+// Adiciona a função ao carregar a página
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', adicionarBotaoVoltarGlobal);
+} else {
+    adicionarBotaoVoltarGlobal();
+}
+
+// ================================================
+// FUNÇÕES ESPECÍFICAS PARA PÁGINA DE REGISTRO
+// ================================================
+
+/**
+ * Atualiza a data da última consulta na interface
+ */
+function atualizarDataUltimaConsulta() {
+    if (window.consultasPaciente && window.consultasPaciente.length > 0) {
+        const ultimaConsulta = window.consultasPaciente[0];
+        const data = new Date(ultimaConsulta.data_consulta);
+        const dataFormatada = data.toLocaleDateString('pt-BR');
+        
+        const elementoData = document.getElementById('data-ultima-consulta');
+        if (elementoData) {
+            elementoData.textContent = dataFormatada;
+        }
+        
+        const containerUltimaConsulta = document.getElementById('ultima-consulta');
+        if (containerUltimaConsulta) {
+            containerUltimaConsulta.style.display = 'block';
+        }
+    } else {
+        const containerUltimaConsulta = document.getElementById('ultima-consulta');
+        if (containerUltimaConsulta) {
+            containerUltimaConsulta.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Carrega informações do paciente do Supabase
+ */
+async function carregarPacienteDoSupabase(pacienteId) {
+    console.log('Buscando paciente no Supabase, ID:', pacienteId);
+    
+    if (!supabase) {
+        throw new Error('Supabase não inicializado');
+    }
+    
+    try {
+        const { data: paciente, error } = await supabase
+            .from('pacientes')
+            .select('*')
+            .eq('id', pacienteId)
+            .single();
+        
+        if (error) {
+            console.error('Erro Supabase paciente:', error);
+            throw new Error('Paciente não encontrado no banco de dados');
+        }
+        
+        // Salvar no localStorage para uso na página
+        localStorage.setItem('pacienteAtualDetalhado', JSON.stringify(paciente));
+        
+        // Atualizar título da página
+        const titulo = document.getElementById('paciente-nome-titulo');
+        if (titulo) {
+            titulo.textContent = paciente.nome || 'Paciente';
+        }
+        
+        console.log('✅ Paciente carregado do Supabase:', paciente.nome);
+        
+        return paciente;
+        
+    } catch (erro) {
+        console.error('Erro ao carregar paciente:', erro);
+        throw erro;
+    }
+}
+
+/**
+ * Carrega consultas do paciente do Supabase
+ */
+async function carregarConsultasDoSupabase(pacienteId) {
+    console.log('Buscando consultas no Supabase para paciente:', pacienteId);
+    
+    if (!supabase || !psicologoLogado) {
+        throw new Error('Sistema não inicializado ou psicólogo não logado');
+    }
+    
+    try {
+        // Buscar consultas no Supabase
+        const { data: consultas, error } = await supabase
+            .from('consultas')
+            .select('*')
+            .eq('paciente_id', pacienteId)
+            .eq('psicologo_id', psicologoLogado.id)
+            .order('data_consulta', { ascending: false });
+        
+        if (error) {
+            console.error('Erro ao carregar consultas:', error);
+            return [];
+        }
+        
+        console.log(`✅ ${consultas?.length || 0} consultas carregadas do Supabase`);
+        
+        // Salvar em variável global para uso na página
+        window.consultasPaciente = consultas || [];
+        
+        return window.consultasPaciente;
+        
+    } catch (erro) {
+        console.error('Erro ao carregar consultas:', erro);
+        return [];
+    }
+}
+
+/**
+ * Exibe o histórico de consultas na página
+ */
+function exibirHistoricoConsultas() {
+    const historicoDiv = document.getElementById('lista-historico');
+    
+    if (!historicoDiv) return;
+    
+    if (!window.consultasPaciente || window.consultasPaciente.length === 0) {
+        historicoDiv.innerHTML = `
+            <div style="text-align: center; padding: 30px; color: var(--cor-texto-claro);">
+                <p>Nenhuma consulta registrada ainda.</p>
+                <p style="font-size: 0.9rem; margin-top: 10px;">
+                    Registre sua primeira consulta acima.
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    window.consultasPaciente.forEach(consulta => {
+        const data = new Date(consulta.data_consulta);
+        const dataFormatada = data.toLocaleDateString('pt-BR');
+        const horaFormatada = data.toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        // Resumo do texto
+        const textoResumido = consulta.relato.length > 200 ? 
+            consulta.relato.substring(0, 200) + '...' : 
+            consulta.relato;
+        
+        html += `
+        <div class="relato-card" onclick="abrirRelatoCompleto('${consulta.id}', '${dataFormatada}', '${horaFormatada}')">
+            <div class="relato-header">
+                <span>${dataFormatada}</span>
+                <span>${horaFormatada}</span>
+                <span style="color: var(--cor-secundaria); font-size: 0.85rem;">
+                    📖 Clique para ver completo
+                </span>
+            </div>
+            <p class="relato-texto">
+                ${textoResumido.replace(/\n/g, '<br>')}
+            </p>
+        </div>
+        `;
+    });
+    
+    historicoDiv.innerHTML = html;
+}
+
+/**
+ * Atualiza o contador de consultas
+ */
+function atualizarContadorConsultas() {
+    const contador = document.getElementById('contador-consultas');
+    if (contador && window.consultasPaciente) {
+        contador.textContent = `(${window.consultasPaciente.length})`;
+    }
+}
+
+/**
+ * Função para salvar relato com feedback visual melhorado
+ * Substitui a função salvarRelato() na página de registro
+ */
+async function salvarRelatoComFeedback() {
+    const btnSalvar = document.getElementById('btn-salvar-relato');
+    const statusDiv = document.getElementById('status-salvamento');
+    const relatoTexto = document.getElementById('relato')?.value.trim();
+    
+    // Validar
+    if (!relatoTexto) {
+        if (statusDiv) {
+            statusDiv.className = 'status-salvamento status-erro';
+            statusDiv.textContent = 'Digite o relato da consulta antes de salvar.';
+        }
+        return;
+    }
+    
+    // Desabilitar botão durante o salvamento
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '⏳ Salvando...';
+    }
+    
+    if (statusDiv) {
+        statusDiv.className = 'status-salvamento';
+        statusDiv.textContent = '';
+    }
+    
+    try {
+        // Chamar função original de salvarRelato
+        await salvarRelato();
+        
+        // Feedback de sucesso
+        if (statusDiv) {
+            statusDiv.className = 'status-salvamento status-sucesso';
+            statusDiv.textContent = '✅ Relato salvo com sucesso! Atualizando histórico...';
+        }
+        
+        // Limpar campo
+        const campoRelato = document.getElementById('relato');
+        if (campoRelato) {
+            campoRelato.value = '';
+        }
+        
+        // Recarregar consultas e atualizar interface
+        setTimeout(async () => {
+            const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+            await carregarConsultasDoSupabase(pacienteStorage.id);
+            exibirHistoricoConsultas();
+            atualizarContadorConsultas();
+            
+            if (statusDiv) {
+                statusDiv.textContent = '✅ Relato salvo e histórico atualizado!';
+                
+                // Limpar status após 3 segundos
+                setTimeout(() => {
+                    statusDiv.className = 'status-salvamento';
+                    statusDiv.textContent = '';
+                }, 3000);
+            }
+        }, 1000);
+        
+    } catch (erro) {
+        console.error('Erro ao salvar relato:', erro);
+        if (statusDiv) {
+            statusDiv.className = 'status-salvamento status-erro';
+            statusDiv.textContent = '❌ Erro ao salvar relato: ' + (erro.message || 'Tente novamente.');
+        }
+    } finally {
+        // Reabilitar botão
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = '💾 Salvar Relato';
+        }
+    }
+}
+
+/**
+ * Função para mostrar/ocultar histórico
+ */
+function toggleHistorico() {
+    const wrapper = document.getElementById('lista-historico-wrapper');
+    const btn = document.getElementById('toggle-history-btn');
+    
+    if (!wrapper || !btn) return;
+    
+    const historicoVisivel = !wrapper.classList.contains('historico-oculto');
+    
+    if (historicoVisivel) {
+        wrapper.classList.add('historico-oculto');
+        btn.textContent = 'Mostrar';
+    } else {
+        wrapper.classList.remove('historico-oculto');
+        btn.textContent = 'Ocultar';
+    }
+}
+
+/**
+ * Função para recarregar a página
+ */
+function recarregarPagina() {
+    if (confirm('Recarregar dados do paciente?')) {
+        const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+        if (pacienteStorage.id) {
+            carregarConsultasDoSupabase(pacienteStorage.id);
+            exibirHistoricoConsultas();
+            atualizarContadorConsultas();
+        }
+    }
+}
+
+/**
+ * Atualiza estatísticas na página (opcional)
+ */
+function atualizarEstatisticas() {
+    // Esta função depende da estrutura HTML da página
+    // Você pode implementar conforme necessário
+    const totalConsultas = window.consultasPaciente?.length || 0;
+    
+    // Atualizar elementos HTML se existirem
+    const totalElement = document.getElementById('total-consultas');
+    if (totalElement) totalElement.textContent = totalConsultas;
+}
+
+/**
+ * Função para carregar dados do paciente
+ */
+async function carregarDadosPaciente() {
+    const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+    
+    if (pacienteStorage.nome) {
+        document.getElementById('paciente-nome-titulo').textContent = pacienteStorage.nome;
+    }
+    
+    // Atualizar dados do paciente
+    try {
+        if (pacienteStorage.id) {
+            const paciente = await carregarPacienteDoSupabase(pacienteStorage.id);
+            if (paciente) {
+                exibirDadosPaciente(paciente);
+            }
+        }
+    } catch (erro) {
+        console.error('Erro ao carregar dados do paciente:', erro);
+    }
+}
+
+/**
+ * Exibe dados do paciente na interface
+ */
+function exibirDadosPaciente(paciente) {
+    const container = document.getElementById('dados-paciente');
+    
+    if (!container) return;
+    
+    // Formatar CPF
+    const cpfFormatado = paciente.cpf ? 
+        paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 
+        'Não informado';
+    
+    // Formatar telefone
+    const telefoneFormatado = paciente.telefone ? 
+        paciente.telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : 
+        'Não informado';
+    
+    // Formatar data de nascimento
+    const dataNasc = paciente.nascimento ? 
+        new Date(paciente.nascimento).toLocaleDateString('pt-BR') : 
+        'Não informado';
+    
+    container.innerHTML = `
+        <div class="dado-item">
+            <div class="dado-label">CPF:</div>
+            <div class="dado-valor">${cpfFormatado}</div>
+        </div>
+        <div class="dado-item">
+            <div class="dado-label">Data de Nascimento:</div>
+            <div class="dado-valor">${dataNasc}</div>
+        </div>
+        <div class="dado-item">
+            <div class="dado-label">Telefone:</div>
+            <div class="dado-valor">${telefoneFormatado}</div>
+        </div>
+        <div class="dado-item">
+            <div class="dado-label">E-mail:</div>
+            <div class="dado-valor">${paciente.email || 'Não informado'}</div>
+        </div>
+        <div class="dado-item">
+            <div class="dado-label">Endereço:</div>
+            <div class="dado-valor">${paciente.endereco || 'Não informado'}</div>
+        </div>
+        <div class="dado-item">
+            <div class="dado-label">Posto de Atendimento:</div>
+            <div class="dado-valor">${paciente.posto || 'Não informado'}</div>
+        </div>
+        ${paciente.obs ? `
+        <div class="dado-item" style="grid-column: 1 / -1;">
+            <div class="dado-label">Observações:</div>
+            <div class="dado-valor">${paciente.obs}</div>
+        </div>
+        ` : ''}
+    `;
+}
+
+// ================================================
+// FUNÇÃO PARA INICIALIZAR CONTADORES
+// ================================================
+function inicializarContadores() {
+    // Inicializar contador de pacientes se estiver na página de pesquisa
+    if (window.location.pathname.includes('pgPesquisa.html') && psicologoLogado) {
+        atualizarContadorPacientes();
+    }
+}
+
+// ================================================
+// FUNÇÃO PARA ATUALIZAR CONTADOR DE PACIENTES
+// ================================================
+async function atualizarContadorPacientes() {
+    if (!supabase || !psicologoLogado) return;
+    
+    try {
+        const { count, error } = await supabase
+            .from('pacientes')
+            .select('*', { count: 'exact', head: true })
+            .eq('psicologo_id', psicologoLogado.id);
+        
+        if (!error && count !== null) {
+            const contadorElement = document.getElementById('contador-pacientes');
+            if (contadorElement) {
+                contadorElement.textContent = `(${count} pacientes cadastrados)`;
+            }
+        }
+    } catch (erro) {
+        console.error('Erro ao atualizar contador de pacientes:', erro);
+    }
+}
+
+// ================================================
+// FUNÇÃO PARA ATUALIZAR ÚLTIMO ACESSO
+// ================================================
+function atualizarUltimoAcesso() {
+    if (psicologoLogado) {
+        const ultimoAcesso = new Date().toLocaleString('pt-BR');
+        const elementoAcesso = document.getElementById('ultimo-acesso');
+        if (elementoAcesso) {
+            elementoAcesso.textContent = `Último acesso: ${ultimoAcesso}`;
+        }
+    }
+}
+
+// Inicializar atualização de último acesso
+setTimeout(atualizarUltimoAcesso, 1000);
+
+// ================================================
+// FUNÇÃO PARA VERIFICAR CONEXÃO COM INTERNET
+// ================================================
+function verificarConexaoInternet() {
+    if (!navigator.onLine) {
+        alert('⚠️ Você está offline. Algumas funcionalidades podem não estar disponíveis.');
+        return false;
+    }
+    return true;
+}
+
+// Adicionar evento para verificar conexão
+window.addEventListener('online', function() {
+    console.log('✅ Conexão com internet restaurada.');
+});
+
+window.addEventListener('offline', function() {
+    console.log('⚠️ Conexão com internet perdida.');
+    alert('⚠️ Você está offline. Os dados serão salvos localmente e sincronizados quando a conexão voltar.');
+});
+
+// Verificar conexão inicial
+if (!verificarConexaoInternet()) {
+    console.log('Modo offline ativado.');
+}
+
+// ================================================
+// EXPORTAÇÃO GLOBAL DAS FUNÇÕES PARA REGISTRO.HTML
+// ================================================
+
+// Expor supabase e psicologoLogado como variáveis globais
+window.supabaseGlobal = supabase;
+window.psicologoLogadoGlobal = psicologoLogado;
+
+// Expor funções que serão usadas no registro.html
+window.carregarHistoricoGlobal = carregarHistorico;
+window.salvarRelatoGlobal = salvarRelato;
+window.carregarDadosPacienteGlobal = carregarDadosPaciente;
+window.atualizarDataUltimaConsultaGlobal = atualizarDataUltimaConsulta;
+
+// Atualizar as variáveis globais quando mudarem
+setInterval(() => {
+    window.supabaseGlobal = supabase;
+    window.psicologoLogadoGlobal = psicologoLogado;
+}, 1000);

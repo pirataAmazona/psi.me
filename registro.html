@@ -8,47 +8,503 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&family=Georgia&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos específicos para a página de registro */
+        .btn-voltar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: transparent;
+            color: var(--cor-secundaria);
+            border: 1px solid var(--cor-secundaria);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 1000;
+        }
+        
+        .btn-voltar:hover {
+            background-color: var(--cor-secundaria);
+            color: white;
+        }
+        /* Botão de gerar relatório */
+.btn-relatorio {
+    background-color: var(--cor-secundaria);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-relatorio:hover {
+    background-color: var(--cor-secundaria-escura);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+        
+        /* Layout principal */
+        .grid-principal {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 992px) {
+            .grid-principal {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Área de relato */
+        .area-relato {
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: var(--sombra-suave);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        #relato {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid var(--cor-borda);
+            border-radius: 10px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            margin-top: 10px;
+            resize: vertical;
+        }
+        
+        /* Área de histórico */
+        .area-historico {
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: var(--sombra-suave);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .historico-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 20px; /* Adiciona espaço entre o título e o botão */
+        }
+        
+        .btn-toggle {
+            background-color: var(--cor-secundaria);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            height: 28px;
+            white-space: nowrap; /* Mantém o texto em uma linha */
+        }
+        
+        #lista-historico {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Área de dados do paciente */
+        .area-dados {
+            grid-column: 1 / -1;
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: var(--sombra-suave);
+            border: 1px solid var(--cor-borda);
+            margin-top: 20px;
+        }
+        
+        .dados-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .dado-item {
+            margin-bottom: 10px;
+        }
+        
+        .dado-label {
+            font-weight: 600;
+            color: var(--cor-secundaria);
+            font-size: 0.9rem;
+        }
+        
+        .dado-valor {
+            color: var(--cor-texto);
+            font-size: 1rem;
+        }
+        
+        /* Cards de consulta no histórico */
+        .consulta-card {
+            background-color: var(--cor-fundo);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--cor-primaria);
+            cursor: pointer;
+        }
+        
+        .consulta-card:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .consulta-data {
+            font-weight: 600;
+            color: var(--cor-secundaria);
+            font-size: 0.9rem;
+        }
+        
+        .consulta-resumo {
+            color: var(--cor-texto);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            max-height: 40px;
+            overflow: hidden;
+        }
+        
+        /* Botão de salvar */
+        .btn-salvar {
+            background-color: var(--cor-primaria);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        .btn-salvar:hover {
+            background-color: var(--cor-primaria-escura);
+        }
+        
+        /* Status de salvamento */
+        .status-salvamento {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .status-sucesso {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-erro {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
 </head>
 
-<body onload="carregarProntuario()"> 
+<body onload="carregarProntuarioCompleto()">
     
+    <a href="pgPesquisa.html" class="btn-voltar">← Voltar</a>
     <h1><a href="home.html">Psi.me</a></h1>
     
-    <h1>Prontuário</h1>
-    <p id="paciente-nome-titulo">Carregando nome do paciente...</p>
-
-
-    <!-- ============================== -->
-    <!-- NOVO RELATO -->
-    <!-- ============================== -->
-    <div class="container form-consulta">
-        <h2>Novo Relato de Consulta</h2>
-
-        <form id="form-novo-relato">
-            <label for="relato">Relato do dia:</label>
-            <textarea id="relato" name="relato" rows="6" required></textarea>
-            
-            <button type="button" onclick="salvarRelato()">
-                Salvar consulta
-            </button>
-        </form>
-    </div>
-
-    <!-- ============================== -->
-    <!-- HISTÓRICO -->
-    <!-- ============================== -->
-    <div class="container historico-container">
-        <h2>Histórico de Registros</h2>
-        <div id="lista-historico">
-            <p style="text-align: center; font-style: italic;">
-                Nenhum registro anterior encontrado.
-            </p>
+    <div class="container-livro">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2>📋 Prontuário Psicológico</h2>
+            <h3 id="nome-paciente" style="color: var(--cor-secundaria); font-weight: 500;">
+                Carregando nome do paciente...
+            </h3>
+            <div id="ultima-consulta" style="display: none; margin-top: 10px; color: var(--cor-texto-claro);">
+                📅 Última consulta: <span id="data-ultima-consulta"></span>
+            </div>
         </div>
+
+        <div class="grid-principal">
+            <!-- COLUNA 1: Área para adicionar relatos -->
+            <div class="area-relato">
+                <h3>📝 Nova Consulta</h3>
+                <label for="relato">Relato da consulta:</label>
+                <textarea id="relato" 
+                          placeholder="Descreva o atendimento realizado, observações, intervenções, e plano terapêutico..."></textarea>
+                
+                <button class="btn-salvar" onclick="salvarRelatoComFeedback()">
+                    💾 Salvar Consulta
+                </button>
+                
+                <div id="status-salvamento" class="status-salvamento"></div>
+            </div>
+
+            <!-- COLUNA 2: Histórico de consultas -->
+            <div class="area-historico">
+                <div class="historico-header">
+                    <h3>🕰️ Histórico</h3>
+                    <button class="btn-toggle" id="toggle-historico" onclick="toggleHistorico()">
+                        Ocultar
+                    </button>
+                </div>
+                
+                <div id="lista-historico">
+                    <p style="text-align: center; color: var(--cor-texto-claro);">
+                        Carregando histórico...
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA 3: Dados do paciente (abaixo) -->
+<div class="area-dados">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>👤 Dados do Paciente</h3>
+        <button class="btn-relatorio" onclick="gerarRelatorioPaciente()">
+            📄 Gerar Relatório
+        </button>
     </div>
     
+    <div class="dados-grid" id="dados-paciente">
+        <p>Carregando dados...</p>
+    </div>
+</div>
+
     <script src="script.js"></script>
+    <script>
+        // Funções específicas para esta página
+        
+        // Alternar visibilidade do histórico
+        function toggleHistorico() {
+            const historicoDiv = document.getElementById('lista-historico');
+            const toggleBtn = document.getElementById('toggle-historico');
+            
+            if (historicoDiv.style.display === 'none') {
+                historicoDiv.style.display = 'block';
+                toggleBtn.textContent = 'Ocultar';
+            } else {
+                historicoDiv.style.display = 'none';
+                toggleBtn.textContent = 'Mostrar';
+            }
+        }
+        
+        // Carregar dados do paciente
+        async function carregarDadosPaciente() {
+            try {
+                const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+                
+                if (!pacienteStorage.id) {
+                    console.error('Nenhum paciente selecionado');
+                    return;
+                }
+                
+                // Atualizar nome no título
+                document.getElementById('nome-paciente').textContent = pacienteStorage.nome || 'Paciente';
+                
+                // Usar supabase global do script.js
+                const supabase = window.supabaseGlobal;
+                
+                if (!supabase) {
+                    console.error('Supabase não inicializado. Aguarde...');
+                    // Tentar novamente em 1 segundo
+                    setTimeout(() => carregarDadosPaciente(), 1000);
+                    return;
+                }
+                
+                // Buscar dados completos do Supabase
+                const { data: paciente, error } = await supabase
+                    .from('pacientes')
+                    .select('*')
+                    .eq('id', pacienteStorage.id)
+                    .single();
+                
+                if (!error && paciente) {
+                    exibirDadosPaciente(paciente);
+                } else {
+                    console.log('Paciente não encontrado no banco ou erro:', error);
+                }
+                
+            } catch (erro) {
+                console.error('Erro ao carregar dados:', erro);
+            }
+        }
+        
+        // Exibir dados do paciente na interface
+        function exibirDadosPaciente(paciente) {
+            const container = document.getElementById('dados-paciente');
+            
+            // Formatar CPF
+            const cpfFormatado = paciente.cpf ? 
+                paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 
+                'Não informado';
+            
+            // Formatar telefone
+            const telefoneFormatado = paciente.telefone ? 
+                paciente.telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : 
+                'Não informado';
+            
+            // Formatar data de nascimento
+            const dataNasc = paciente.nascimento ? 
+                new Date(paciente.nascimento).toLocaleDateString('pt-BR') : 
+                'Não informado';
+            
+            container.innerHTML = `
+                <div class="dado-item">
+                    <div class="dado-label">CPF:</div>
+                    <div class="dado-valor">${cpfFormatado}</div>
+                </div>
+                <div class="dado-item">
+                    <div class="dado-label">Data de Nascimento:</div>
+                    <div class="dado-valor">${dataNasc}</div>
+                </div>
+                <div class="dado-item">
+                    <div class="dado-label">Telefone:</div>
+                    <div class="dado-valor">${telefoneFormatado}</div>
+                </div>
+                <div class="dado-item">
+                    <div class="dado-label">E-mail:</div>
+                    <div class="dado-valor">${paciente.email || 'Não informado'}</div>
+                </div>
+                <div class="dado-item">
+                    <div class="dado-label">Endereço:</div>
+                    <div class="dado-valor">${paciente.endereco || 'Não informado'}</div>
+                </div>
+                <div class="dado-item">
+                    <div class="dado-label">Posto de Atendimento:</div>
+                    <div class="dado-valor">${paciente.posto || 'Não informado'}</div>
+                </div>
+                ${paciente.obs ? `
+                <div class="dado-item" style="grid-column: 1 / -1;">
+                    <div class="dado-label">Observações:</div>
+                    <div class="dado-valor">${paciente.obs}</div>
+                </div>
+                ` : ''}
+            `;
+        }
+        
+        // Função para redirecionar para a página de relatório
+        async function gerarRelatorioPaciente() {
+            try {
+                const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+                
+                if (!pacienteStorage.id) {
+                    alert('Nenhum paciente selecionado.');
+                    return;
+                }
+                
+                // Armazenar o ID do paciente para a página de relatório
+                localStorage.setItem('pacienteParaRelatorio', JSON.stringify(pacienteStorage));
+                
+                // Redirecionar para a página de relatório
+                window.location.href = 'relatorio_paciente.html';
+                
+            } catch (erro) {
+                console.error('Erro ao preparar relatório:', erro);
+                alert('❌ Erro ao preparar relatório. Verifique o console para detalhes.');
+            }
+        }
+        
+        // Carregar prontuário completo
+        async function carregarProntuarioCompleto() {
+            console.log('Carregando prontuário...');
+            
+            // Aguardar carregamento do script.js
+            if (!window.supabaseGlobal) {
+                console.log('Aguardando inicialização do Supabase...');
+                setTimeout(() => carregarProntuarioCompleto(), 500);
+                return;
+            }
+            
+            // 1. Carregar dados do paciente
+            await carregarDadosPaciente();
+            
+            // 2. Carregar histórico usando a função global do script.js
+            if (typeof window.carregarHistoricoGlobal === 'function') {
+                await window.carregarHistoricoGlobal();
+            } else if (typeof carregarHistorico === 'function') {
+                // Tentar usar a função local se existir
+                await carregarHistorico();
+            } else {
+                console.log('Função carregarHistorico não encontrada');
+            }
+            
+            // 3. Atualizar data da última consulta
+            if (typeof window.atualizarDataUltimaConsultaGlobal === 'function') {
+                window.atualizarDataUltimaConsultaGlobal();
+            }
+        }
+        
+        // Função de feedback para salvar relato
+        async function salvarRelatoComFeedback() {
+            const btnSalvar = document.querySelector('.btn-salvar');
+            const statusDiv = document.getElementById('status-salvamento');
+            const relatoTexto = document.getElementById('relato').value.trim();
+            
+            if (!relatoTexto) {
+                statusDiv.innerHTML = '<p style="color: var(--cor-alerta);">Digite o relato da consulta.</p>';
+                return;
+            }
+            
+            // Usar função global do script.js
+            const salvarRelatoFn = window.salvarRelatoGlobal || salvarRelato;
+            
+            if (typeof salvarRelatoFn === 'function') {
+                btnSalvar.disabled = true;
+                btnSalvar.innerHTML = '⏳ Salvando...';
+                
+                try {
+                    await salvarRelatoFn();
+                    
+                    // Feedback de sucesso
+                    statusDiv.innerHTML = '<p style="color: var(--cor-sucesso);">✅ Relato salvo com sucesso!</p>';
+                    
+                    // Limpar campo
+                    document.getElementById('relato').value = '';
+                    
+                    // Recarregar histórico
+                    const carregarHistoricoFn = window.carregarHistoricoGlobal || carregarHistorico;
+                    if (typeof carregarHistoricoFn === 'function') {
+                        await carregarHistoricoFn();
+                    }
+                    
+                    // Atualizar data da última consulta
+                    if (typeof window.atualizarDataUltimaConsultaGlobal === 'function') {
+                        window.atualizarDataUltimaConsultaGlobal();
+                    }
+                    
+                    // Limpar feedback após 3 segundos
+                    setTimeout(() => {
+                        statusDiv.innerHTML = '';
+                    }, 3000);
+                    
+                } catch (erro) {
+                    statusDiv.innerHTML = `<p style="color: var(--cor-alerta);">❌ Erro ao salvar: ${erro.message}</p>`;
+                } finally {
+                    btnSalvar.disabled = false;
+                    btnSalvar.innerHTML = '💾 Salvar Consulta';
+                }
+            } else {
+                alert('Função de salvar relato não encontrada.');
+            }
+        }
+    </script>
 </body>
 </html>

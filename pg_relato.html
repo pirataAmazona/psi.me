@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relato Completo - Psi.me</title>
+    
+    <!-- Mesmos recursos das outras páginas -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Estilos específicos para esta página */
+        body {
+            padding: 20px;
+            background-color: var(--cor-fundo);
+        }
+        
+        .container-relato {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .cabecalho-relato {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--cor-fundo);
+        }
+        
+        .cabecalho-relato h2 {
+            color: var(--cor-primaria);
+            margin-bottom: 10px;
+        }
+        
+        .info-relato {
+            color: var(--cor-secundaria);
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        
+        .texto-completo {
+            background-color: #f9f9f9;
+            padding: 25px;
+            border-radius: 15px;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            white-space: pre-wrap;
+            border-left: 4px solid var(--cor-primaria);
+            margin: 30px 0;
+        }
+        
+        .botoes-acao {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-acao {
+            padding: 12px 25px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            min-width: 160px;
+        }
+        
+        .btn-voltar {
+            background-color: transparent;
+            color: var(--cor-primaria);
+            border: 2px solid var(--cor-primaria);
+        }
+        
+        .btn-voltar:hover {
+            background-color: var(--cor-primaria);
+            color: white;
+        }
+        
+        .btn-imprimir {
+            background-color: var(--cor-primaria);
+            color: white;
+        }
+        
+        .btn-imprimir:hover {
+            background-color: #265a5a;
+        }
+        
+        .btn-copiar {
+            background-color: var(--cor-secundaria);
+            color: white;
+        }
+        
+        .btn-copiar:hover {
+            background-color: #d16454;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: var(--cor-texto);
+        }
+        
+        .error {
+            color: red;
+            text-align: center;
+            padding: 30px;
+            background-color: #ffe6e6;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .container-relato {
+                padding: 20px;
+            }
+            
+            .texto-completo {
+                padding: 20px;
+            }
+            
+            .botoes-acao {
+                flex-direction: column;
+            }
+            
+            .btn-acao {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Cabeçalho igual às outras páginas -->
+    <h1><a href="home.html">Psi.me</a></h1>
+    
+    <div class="container-relato">
+        <div class="cabecalho-relato">
+            <h2>📄 Relato de Consulta</h2>
+            <div id="info-relato" class="info-relato">
+                <p>Carregando informações...</p>
+            </div>
+        </div>
+        
+        <!-- Área onde o relato será exibido -->
+        <div id="conteudo-relato" class="loading">
+            <p>Carregando relato completo...</p>
+        </div>
+        
+        <!-- Botões de ação -->
+        <div class="botoes-acao">
+            <button class="btn-acao btn-voltar" onclick="voltarParaRegistro()">
+                ⬅️ Voltar ao Prontuário
+            </button>
+            <button class="btn-acao btn-copiar" onclick="copiarRelato()">
+                📋 Copiar Relato
+            </button>
+            <button class="btn-acao btn-imprimir" onclick="imprimirRelato()">
+                🖨️ Imprimir
+            </button>
+        </div>
+    </div>
+    
+    <!-- JavaScript específico desta página -->
+    <script>
+        // ================================================
+        // CONFIGURAÇÃO DO SUPABASE (MESMA DAS OUTRAS PÁGINAS)
+        // ================================================
+        const SUPABASE_URL = 'https://kvsdsercsgezcdymihjx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2c2RzZXJjc2dlemNkeW1paGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1ODcwOTIsImV4cCI6MjA4MTE2MzA5Mn0.zpcV9L44zRtWlMJlYCK_VIaNSitIpagoGT37IBonq6w';
+        
+        let supabase = null;
+        
+        // ================================================
+        // FUNÇÕES PRINCIPAIS
+        // ================================================
+        
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarSupabase();
+            carregarRelatoDaURL();
+        });
+        
+        // 1. Inicializar conexão com Supabase
+        function inicializarSupabase() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase inicializado na página de relato');
+            } catch (e) {
+                console.error('❌ Erro ao inicializar Supabase:', e);
+                mostrarErro('Erro de conexão com o banco de dados.');
+            }
+        }
+        
+        // 2. Carregar relato da URL
+        async function carregarRelatoDaURL() {
+            // Pegar parâmetros da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const relatoId = urlParams.get('id');
+            const dataParam = urlParams.get('data') || '';
+            const textoLocal = urlParams.get('texto');
+            
+            console.log('Parâmetros da URL:', { relatoId, dataParam, textoLocal });
+            
+            if (!relatoId && !textoLocal) {
+                mostrarErro('Nenhum relato especificado na URL.');
+                return;
+            }
+            
+            try {
+                let relatoData = null;
+                
+                // SE TEM ID: buscar do Supabase
+                if (relatoId && !relatoId.startsWith('local_')) {
+                    relatoData = await buscarRelatoDoSupabase(relatoId);
+                }
+                
+                // SE NÃO ENCONTROU NO SUPABASE ou É LOCAL: usar dados da URL
+                if (!relatoData && textoLocal) {
+                    relatoData = {
+                        relato: decodeURIComponent(textoLocal),
+                        data_consulta: dataParam ? dataParam.replace(' às ', ' ') : new Date().toISOString()
+                    };
+                }
+                
+                // SE AINDA NÃO TEM DADOS: tentar localStorage
+                if (!relatoData) {
+                    relatoData = await buscarRelatoDoLocalStorage(relatoId, dataParam);
+                }
+                
+                // Exibir os dados
+                if (relatoData) {
+                    exibirRelato(relatoData, dataParam);
+                } else {
+                    mostrarErro('Relato não encontrado.');
+                }
+                
+            } catch (erro) {
+                console.error('Erro ao carregar relato:', erro);
+                mostrarErro('Erro ao carregar o relato: ' + erro.message);
+            }
+        }
+        
+        // 3. Buscar relato do Supabase
+        async function buscarRelatoDoSupabase(relatoId) {
+            if (!supabase) {
+                throw new Error('Supabase não inicializado');
+            }
+            
+            console.log('Buscando relato do Supabase, ID:', relatoId);
+            
+            const { data, error } = await supabase
+                .from('consultas')
+                .select('*')
+                .eq('id', relatoId)
+                .single();
+            
+            if (error) {
+                console.error('Erro ao buscar do Supabase:', error);
+                return null;
+            }
+            
+            console.log('Relato encontrado no Supabase:', data);
+            return data;
+        }
+        
+        // 4. Buscar relato do localStorage (fallback)
+        async function buscarRelatoDoLocalStorage(relatoId, dataParam) {
+            console.log('Buscando relato no localStorage...');
+            
+            // Tentar pegar do paciente atual
+            const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+            const pacienteId = pacienteInfo.id;
+            
+            if (!pacienteId) {
+                console.log('Nenhum paciente ativo no localStorage');
+                return null;
+            }
+            
+            const registros = JSON.parse(localStorage.getItem('pacienteRegistros') || '{}');
+            const relatosPaciente = registros[pacienteId];
+            
+            if (!relatosPaciente || relatosPaciente.length === 0) {
+                console.log('Nenhum registro local para este paciente');
+                return null;
+            }
+            
+            // Se veio data da URL, tentar encontrar por data
+            if (dataParam) {
+                const dataBusca = dataParam.split(' às ')[0]; // Pegar apenas a data
+                const relatoEncontrado = relatosPaciente.find(r => r.data === dataBusca);
+                
+                if (relatoEncontrado) {
+                    console.log('Relato encontrado no localStorage por data:', relatoEncontrado);
+                    return {
+                        relato: relatoEncontrado.texto,
+                        data_consulta: relatoEncontrado.data + ' ' + relatoEncontrado.hora
+                    };
+                }
+            }
+            
+            // Tentar encontrar pelo texto (se veio texto na URL)
+            const textoURL = new URLSearchParams(window.location.search).get('texto');
+            if (textoURL) {
+                const textoBusca = decodeURIComponent(textoURL).substring(0, 100);
+                const relatoEncontrado = relatosPaciente.find(r => 
+                    r.texto.includes(textoBusca)
+                );
+                
+                if (relatoEncontrado) {
+                    console.log('Relato encontrado no localStorage por texto:', relatoEncontrado);
+                    return {
+                        relato: relatoEncontrado.texto,
+                        data_consulta: relatoEncontrado.data + ' ' + relatoEncontrado.hora
+                    };
+                }
+            }
+            
+            return null;
+        }
+        
+        // 5. Exibir relato na página
+        function exibirRelato(relatoData, dataParam) {
+            const conteudoDiv = document.getElementById('conteudo-relato');
+            const infoDiv = document.getElementById('info-relato');
+            
+            // Formatar data
+            let dataFormatada = '';
+            if (dataParam) {
+                dataFormatada = dataParam;
+            } else if (relatoData.data_consulta) {
+                try {
+                    const dataObj = new Date(relatoData.data_consulta);
+                    dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + 
+                                   dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                } catch {
+                    dataFormatada = relatoData.data_consulta;
+                }
+            }
+            
+            // Atualizar informações
+            const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+            infoDiv.innerHTML = `
+                <p><strong>Paciente:</strong> ${pacienteInfo.nome || 'Não especificado'}</p>
+                <p><strong>Data da consulta:</strong> ${dataFormatada}</p>
+            `;
+            
+            // Exibir texto do relato (com quebras de linha)
+            const textoFormatado = relatoData.relato.replace(/\n/g, '<br>');
+            conteudoDiv.className = 'texto-completo';
+            conteudoDiv.innerHTML = textoFormatado;
+        }
+        
+        // 6. Mostrar erro
+        function mostrarErro(mensagem) {
+            const conteudoDiv = document.getElementById('conteudo-relato');
+            conteudoDiv.className = 'error';
+            conteudoDiv.innerHTML = `<p>${mensagem}</p>`;
+        }
+        
+        // 7. Funções dos botões
+        function voltarParaRegistro() {
+            // Voltar para a página de registro
+            window.location.href = 'registro.html';
+        }
+        
+        async function copiarRelato() {
+            const texto = document.getElementById('conteudo-relato').textContent;
+            
+            try {
+                await navigator.clipboard.writeText(texto);
+                alert('✅ Relato copiado para a área de transferência!');
+            } catch (erro) {
+                // Fallback para navegadores antigos
+                const textarea = document.createElement('textarea');
+                textarea.value = texto;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('✅ Relato copiado!');
+            }
+        }
+        
+        function imprimirRelato() {
+            window.print();
+        }
+        
+        // 8. Fechar com ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                voltarParaRegistro();
+            }
+        });
+    </script>
+</body>
+</html>

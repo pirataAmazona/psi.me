@@ -9,31 +9,139 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&family=Georgia&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos para o botão de voltar */
+        .btn-voltar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: transparent;
+            color: var(--cor-secundaria);
+            border: 1px solid var(--cor-secundaria);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 1000;
+        }
+        
+        .btn-voltar:hover {
+            background-color: var(--cor-secundaria);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Ajuste para garantir que não sobreponha o logo em telas pequenas */
+        @media (max-width: 768px) {
+            .btn-voltar {
+                top: 10px;
+                left: 10px;
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            
+            h1 {
+                margin-top: 40px !important;
+            }
+        }
+        
+        /* Container principal para posicionamento relativo */
+        .page-container {
+            position: relative;
+            min-height: 100vh;
+        }
+    </style>
 </head>
 <body>
     
-    <h1><a href="home.html">Psi.me</a></h1>
-    <p>Pesquisar e Acessar Pacientes</p>
+    <div class="page-container">
+        <!-- Botão de Voltar para Página de Escolha -->
+        <a href="pgDeEscolha.html" class="btn-voltar" title="Voltar para página anterior">
+            ← Voltar
+        </a>
+        
+        <h1><a href="home.html">Psi.me</a></h1>
+        <p style="text-align: center; color: var(--cor-secundaria); margin-bottom: 40px;">
+            Pesquisa de Pacientes
+        </p>
 
-    <div class="container search-container">
-        <h2>Encontrar Paciente</h2>
-        <form id="form-pesquisa">
-            <label for="termoPesquisa">Nome ou CPF do Paciente</label>
-            <input type="text" id="termoPesquisa" name="termoPesquisa" placeholder="Digite o nome ou CPF" required>
-
-            <button type="submit" class="submit-btn">Buscar</button>
-        </form>
-    </div>
-
-    <div class="container" id="resultados-pesquisa" style="margin-top: 20px; max-width: 600px;">
-        <!-- O conteúdo será preenchido pelo JavaScript -->
-        <p style="text-align: center;">Carregando pacientes...</p>
+        <div class="container-livro">
+            <h2>🔍 Pesquisar Paciente</h2>
+            <form id="form-pesquisa" style="max-width: 600px; margin: 0 auto;">
+                <div class="form-grupo">
+                    <label for="termoPesquisa">Nome ou CPF do Paciente</label>
+                    <input type="text" id="termoPesquisa" name="termoPesquisa" 
+                           placeholder="Digite nome ou CPF para buscar..."
+                           style="padding: 16px; font-size: 1rem;">
+                    <p style="font-size: 0.9rem; color: var(--cor-texto-claro); margin-top: 5px;">
+                        Digite pelo menos 2 caracteres para buscar
+                    </p>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <button type="submit" class="largura-total">
+                        🔎 Buscar Paciente
+                    </button>
+                </div>
+            </form>
+            
+            <div class="decoracao-linha" style="margin: 40px 0;"></div>
+            
+            <div id="resultados-pesquisa">
+                <!-- Mensagem inicial -->
+                <div class="texto-centralizado" style="padding: 40px;">
+                    <p style="color: var(--cor-texto); font-size: 1.1rem;">
+                        Digite um nome ou CPF para pesquisar pacientes
+                    </p>
+                    <p style="color: var(--cor-texto-claro); font-size: 0.95rem; margin-top: 10px;">
+                        Os resultados aparecerão aqui após a pesquisa
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <!-- APENAS UM SCRIPT NO FINAL -->
     <script src="script.js"></script>
+    <script>
+        // Adiciona funcionalidade extra ao botão de voltar
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnVoltar = document.querySelector('.btn-voltar');
+            
+            if (btnVoltar) {
+                // Adiciona efeito de confirmação se houver pesquisa em andamento
+                btnVoltar.addEventListener('click', function(e) {
+                    const termo = document.getElementById('termoPesquisa')?.value.trim();
+                    
+                    // Se houver termo digitado, pergunta se quer mesmo voltar
+                    if (termo && termo.length > 0) {
+                        if (!confirm('Você tem uma pesquisa em andamento. Deseja realmente voltar?')) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+                    
+                    // Verifica se está logado antes de voltar
+                    if (typeof psicologoLogado === 'undefined' || psicologoLogado === null) {
+                        alert('Sessão expirada. Redirecionando para login...');
+                        window.location.href = 'home.html';
+                        e.preventDefault();
+                        return false;
+                    }
+                    
+                    return true;
+                });
+            }
+        });
+    </script>
 </body>
 </html>
