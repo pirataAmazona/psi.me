@@ -8,8 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&family=Georgia&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
         /* Estilos específicos para a página de registro */
@@ -275,13 +274,26 @@
         </div>
 
         <!-- COLUNA 3: Dados do paciente (abaixo) -->
+<!-- COLUNA 3: Dados do paciente (abaixo) -->
 <div class="area-dados">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h3>👤 Dados do Paciente</h3>
-        <button class="btn-relatorio" onclick="gerarRelatorioPaciente()">
-            📄 Gerar Relatório
-        </button>
+        <div style="display: flex; gap: 15px;">
+            <button class="btn-relatorio" onclick="gerarRelatorioPaciente()">
+                📄 Gerar Relatório
+            </button>
+            <button class="btn-relatorio" style="background-color: var(--cor-primaria);" 
+        onclick="window.location.href = 'agendamento.html'">
+    📅 Agendar Consulta
+</button>
+        </div>
     </div>
+    
+    <div class="dados-grid" id="dados-paciente">
+        <p>Carregando dados...</p>
+    </div>
+</div>
+</div>
     
     <div class="dados-grid" id="dados-paciente">
         <p>Carregando dados...</p>
@@ -290,221 +302,153 @@
 
     <script src="script.js"></script>
     <script>
-        // Funções específicas para esta página
+    // Funções específicas para esta página
+    
+    // Alternar visibilidade do histórico
+    function toggleHistorico() {
+        const historicoDiv = document.getElementById('lista-historico');
+        const toggleBtn = document.getElementById('toggle-historico');
         
-        // Alternar visibilidade do histórico
-        function toggleHistorico() {
-            const historicoDiv = document.getElementById('lista-historico');
-            const toggleBtn = document.getElementById('toggle-historico');
-            
-            if (historicoDiv.style.display === 'none') {
-                historicoDiv.style.display = 'block';
-                toggleBtn.textContent = 'Ocultar';
-            } else {
-                historicoDiv.style.display = 'none';
-                toggleBtn.textContent = 'Mostrar';
-            }
+        if (historicoDiv.style.display === 'none') {
+            historicoDiv.style.display = 'block';
+            toggleBtn.textContent = 'Ocultar';
+        } else {
+            historicoDiv.style.display = 'none';
+            toggleBtn.textContent = 'Mostrar';
         }
-        
-        // Carregar dados do paciente
-        async function carregarDadosPaciente() {
-            try {
-                const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-                
-                if (!pacienteStorage.id) {
-                    console.error('Nenhum paciente selecionado');
-                    return;
-                }
-                
-                // Atualizar nome no título
-                document.getElementById('nome-paciente').textContent = pacienteStorage.nome || 'Paciente';
-                
-                // Usar supabase global do script.js
-                const supabase = window.supabaseGlobal;
-                
-                if (!supabase) {
-                    console.error('Supabase não inicializado. Aguarde...');
-                    // Tentar novamente em 1 segundo
-                    setTimeout(() => carregarDadosPaciente(), 1000);
-                    return;
-                }
-                
-                // Buscar dados completos do Supabase
-                const { data: paciente, error } = await supabase
-                    .from('pacientes')
-                    .select('*')
-                    .eq('id', pacienteStorage.id)
-                    .single();
-                
-                if (!error && paciente) {
-                    exibirDadosPaciente(paciente);
-                } else {
-                    console.log('Paciente não encontrado no banco ou erro:', error);
-                }
-                
-            } catch (erro) {
-                console.error('Erro ao carregar dados:', erro);
-            }
-        }
-        
-        // Exibir dados do paciente na interface
-        function exibirDadosPaciente(paciente) {
-            const container = document.getElementById('dados-paciente');
+    }
+    
+    // Carregar dados do paciente
+    async function carregarDadosPaciente() {
+        try {
+            const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
             
-            // Formatar CPF
-            const cpfFormatado = paciente.cpf ? 
-                paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 
-                'Não informado';
-            
-            // Formatar telefone
-            const telefoneFormatado = paciente.telefone ? 
-                paciente.telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : 
-                'Não informado';
-            
-            // Formatar data de nascimento
-            const dataNasc = paciente.nascimento ? 
-                new Date(paciente.nascimento).toLocaleDateString('pt-BR') : 
-                'Não informado';
-            
-            container.innerHTML = `
-                <div class="dado-item">
-                    <div class="dado-label">CPF:</div>
-                    <div class="dado-valor">${cpfFormatado}</div>
-                </div>
-                <div class="dado-item">
-                    <div class="dado-label">Data de Nascimento:</div>
-                    <div class="dado-valor">${dataNasc}</div>
-                </div>
-                <div class="dado-item">
-                    <div class="dado-label">Telefone:</div>
-                    <div class="dado-valor">${telefoneFormatado}</div>
-                </div>
-                <div class="dado-item">
-                    <div class="dado-label">E-mail:</div>
-                    <div class="dado-valor">${paciente.email || 'Não informado'}</div>
-                </div>
-                <div class="dado-item">
-                    <div class="dado-label">Endereço:</div>
-                    <div class="dado-valor">${paciente.endereco || 'Não informado'}</div>
-                </div>
-                <div class="dado-item">
-                    <div class="dado-label">Posto de Atendimento:</div>
-                    <div class="dado-valor">${paciente.posto || 'Não informado'}</div>
-                </div>
-                ${paciente.obs ? `
-                <div class="dado-item" style="grid-column: 1 / -1;">
-                    <div class="dado-label">Observações:</div>
-                    <div class="dado-valor">${paciente.obs}</div>
-                </div>
-                ` : ''}
-            `;
-        }
-        
-        // Função para redirecionar para a página de relatório
-        async function gerarRelatorioPaciente() {
-            try {
-                const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-                
-                if (!pacienteStorage.id) {
-                    alert('Nenhum paciente selecionado.');
-                    return;
-                }
-                
-                // Armazenar o ID do paciente para a página de relatório
-                localStorage.setItem('pacienteParaRelatorio', JSON.stringify(pacienteStorage));
-                
-                // Redirecionar para a página de relatório
-                window.location.href = 'relatorio_paciente.html';
-                
-            } catch (erro) {
-                console.error('Erro ao preparar relatório:', erro);
-                alert('❌ Erro ao preparar relatório. Verifique o console para detalhes.');
-            }
-        }
-        
-        // Carregar prontuário completo
-        async function carregarProntuarioCompleto() {
-            console.log('Carregando prontuário...');
-            
-            // Aguardar carregamento do script.js
-            if (!window.supabaseGlobal) {
-                console.log('Aguardando inicialização do Supabase...');
-                setTimeout(() => carregarProntuarioCompleto(), 500);
+            if (!pacienteStorage.id) {
+                console.error('Nenhum paciente selecionado');
                 return;
             }
             
-            // 1. Carregar dados do paciente
-            await carregarDadosPaciente();
+            // Atualizar nome no título
+            document.getElementById('nome-paciente').textContent = pacienteStorage.nome || 'Paciente';
             
-            // 2. Carregar histórico usando a função global do script.js
-            if (typeof window.carregarHistoricoGlobal === 'function') {
-                await window.carregarHistoricoGlobal();
-            } else if (typeof carregarHistorico === 'function') {
-                // Tentar usar a função local se existir
-                await carregarHistorico();
-            } else {
-                console.log('Função carregarHistorico não encontrada');
-            }
+            // Usar supabase global do script.js
+            const supabase = window.supabaseClient;
             
-            // 3. Atualizar data da última consulta
-            if (typeof window.atualizarDataUltimaConsultaGlobal === 'function') {
-                window.atualizarDataUltimaConsultaGlobal();
-            }
-        }
-        
-        // Função de feedback para salvar relato
-        async function salvarRelatoComFeedback() {
-            const btnSalvar = document.querySelector('.btn-salvar');
-            const statusDiv = document.getElementById('status-salvamento');
-            const relatoTexto = document.getElementById('relato').value.trim();
-            
-            if (!relatoTexto) {
-                statusDiv.innerHTML = '<p style="color: var(--cor-alerta);">Digite o relato da consulta.</p>';
+            if (!supabase) {
+                console.error('Supabase não inicializado. Aguarde...');
+                // Tentar novamente em 1 segundo
+                setTimeout(() => carregarDadosPaciente(), 1000);
                 return;
             }
             
-            // Usar função global do script.js
-            const salvarRelatoFn = window.salvarRelatoGlobal || salvarRelato;
+            // Buscar dados completos do Supabase
+            const { data: paciente, error } = await supabase
+                .from('pacientes')
+                .select('*')
+                .eq('id', pacienteStorage.id)
+                .single();
             
-            if (typeof salvarRelatoFn === 'function') {
-                btnSalvar.disabled = true;
-                btnSalvar.innerHTML = '⏳ Salvando...';
-                
-                try {
-                    await salvarRelatoFn();
-                    
-                    // Feedback de sucesso
-                    statusDiv.innerHTML = '<p style="color: var(--cor-sucesso);">✅ Relato salvo com sucesso!</p>';
-                    
-                    // Limpar campo
-                    document.getElementById('relato').value = '';
-                    
-                    // Recarregar histórico
-                    const carregarHistoricoFn = window.carregarHistoricoGlobal || carregarHistorico;
-                    if (typeof carregarHistoricoFn === 'function') {
-                        await carregarHistoricoFn();
-                    }
-                    
-                    // Atualizar data da última consulta
-                    if (typeof window.atualizarDataUltimaConsultaGlobal === 'function') {
-                        window.atualizarDataUltimaConsultaGlobal();
-                    }
-                    
-                    // Limpar feedback após 3 segundos
-                    setTimeout(() => {
-                        statusDiv.innerHTML = '';
-                    }, 3000);
-                    
-                } catch (erro) {
-                    statusDiv.innerHTML = `<p style="color: var(--cor-alerta);">❌ Erro ao salvar: ${erro.message}</p>`;
-                } finally {
-                    btnSalvar.disabled = false;
-                    btnSalvar.innerHTML = '💾 Salvar Consulta';
-                }
+            if (!error && paciente) {
+                exibirDadosPaciente(paciente);
             } else {
-                alert('Função de salvar relato não encontrada.');
+                console.log('Paciente não encontrado no banco ou erro:', error);
             }
+            
+        } catch (erro) {
+            console.error('Erro ao carregar dados:', erro);
         }
-    </script>
+    }
+    
+    // Exibir dados do paciente na interface
+    function exibirDadosPaciente(paciente) {
+        const container = document.getElementById('dados-paciente');
+        
+        // Formatar CPF
+        const cpfFormatado = paciente.cpf ? 
+            paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 
+            'Não informado';
+        
+        // Formatar telefone
+        const telefoneFormatado = paciente.telefone ? 
+            paciente.telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : 
+            'Não informado';
+        
+        // Formatar data de nascimento
+        const dataNasc = paciente.nascimento ? 
+            new Date(paciente.nascimento).toLocaleDateString('pt-BR') : 
+            'Não informado';
+        
+        container.innerHTML = `
+            <div class="dado-item">
+                <div class="dado-label">CPF:</div>
+                <div class="dado-valor">${cpfFormatado}</div>
+            </div>
+            <div class="dado-item">
+                <div class="dado-label">Data de Nascimento:</div>
+                <div class="dado-valor">${dataNasc}</div>
+            </div>
+            <div class="dado-item">
+                <div class="dado-label">Telefone:</div>
+                <div class="dado-valor">${telefoneFormatado}</div>
+            </div>
+            <div class="dado-item">
+                <div class="dado-label">E-mail:</div>
+                <div class="dado-valor">${paciente.email || 'Não informado'}</div>
+            </div>
+            <div class="dado-item">
+                <div class="dado-label">Endereço:</div>
+                <div class="dado-valor">${paciente.endereco || 'Não informado'}</div>
+            </div>
+            <div class="dado-item">
+                <div class="dado-label">Posto de Atendimento:</div>
+                <div class="dado-valor">${paciente.posto || 'Não informado'}</div>
+            </div>
+            ${paciente.obs ? `
+            <div class="dado-item" style="grid-column: 1 / -1;">
+                <div class="dado-label">Observações:</div>
+                <div class="dado-valor">${paciente.obs}</div>
+            </div>
+            ` : ''}
+        `;
+    }
+    
+    // Função para redirecionar para a página de relatório
+    function gerarRelatorioPaciente() {
+        const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+        
+        if (!pacienteStorage.id) {
+            alert('Nenhum paciente selecionado.');
+            return;
+        }
+        
+        // Armazenar o ID do paciente para a página de relatório
+        localStorage.setItem('pacienteParaRelatorio', JSON.stringify(pacienteStorage));
+        
+        // Redirecionar para a página de relatório
+        window.location.href = 'relatorio_paciente.html';
+    }
+    
+    // Carregar prontuário completo
+    async function carregarProntuarioCompleto() {
+        console.log('Carregando prontuário...');
+        
+        // Aguardar carregamento do script.js
+        if (!window.supabaseClient) {
+            console.log('Aguardando inicialização do Supabase...');
+            setTimeout(() => carregarProntuarioCompleto(), 500);
+            return;
+        }
+        
+        // 1. Carregar dados do paciente
+        await carregarDadosPaciente();
+        
+        // 2. Carregar histórico usando a função global do script.js
+        if (typeof window.carregarHistorico === 'function') {
+            await window.carregarHistorico();
+        } else {
+            console.log('Função carregarHistorico não encontrada');
+        }
+    }
+</script>
 </body>
 </html>

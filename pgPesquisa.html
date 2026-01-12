@@ -9,7 +9,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&family=Georgia&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
     <style>
@@ -84,7 +84,6 @@
                            placeholder="Digite nome ou CPF para buscar..."
                            style="padding: 16px; font-size: 1rem;">
                     <p style="font-size: 0.9rem; color: var(--cor-texto-claro); margin-top: 5px;">
-                        Digite pelo menos 2 caracteres para buscar
                     </p>
                 </div>
                 
@@ -101,10 +100,8 @@
                 <!-- Mensagem inicial -->
                 <div class="texto-centralizado" style="padding: 40px;">
                     <p style="color: var(--cor-texto); font-size: 1.1rem;">
-                        Digite um nome ou CPF para pesquisar pacientes
                     </p>
                     <p style="color: var(--cor-texto-claro); font-size: 0.95rem; margin-top: 10px;">
-                        Os resultados aparecerão aqui após a pesquisa
                     </p>
                 </div>
             </div>
@@ -112,36 +109,37 @@
     </div>
     
     <script src="script.js"></script>
-    <script>
-        // Adiciona funcionalidade extra ao botão de voltar
-        document.addEventListener('DOMContentLoaded', function() {
-            const btnVoltar = document.querySelector('.btn-voltar');
-            
-            if (btnVoltar) {
-                // Adiciona efeito de confirmação se houver pesquisa em andamento
-                btnVoltar.addEventListener('click', function(e) {
-                    const termo = document.getElementById('termoPesquisa')?.value.trim();
-                    
-                    // Se houver termo digitado, pergunta se quer mesmo voltar
-                    if (termo && termo.length > 0) {
-                        if (!confirm('Você tem uma pesquisa em andamento. Deseja realmente voltar?')) {
-                            e.preventDefault();
-                            return false;
-                        }
-                    }
-                    
-                    // Verifica se está logado antes de voltar
-                    if (typeof psicologoLogado === 'undefined' || psicologoLogado === null) {
-                        alert('Sessão expirada. Redirecionando para login...');
-                        window.location.href = 'home.html';
+   <script>
+    // Remove o script antigo e adiciona este
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnVoltar = document.querySelector('.btn-voltar');
+        
+        if (btnVoltar) {
+            // Adiciona efeito de confirmação se houver pesquisa em andamento
+            btnVoltar.addEventListener('click', function(e) {
+                const termo = document.getElementById('termoPesquisa')?.value.trim();
+                
+                // Se houver termo digitado, pergunta se quer mesmo voltar
+                if (termo && termo.length > 0) {
+                    if (!confirm('Você tem uma pesquisa em andamento. Deseja realmente voltar?')) {
                         e.preventDefault();
                         return false;
                     }
-                    
-                    return true;
-                });
-            }
-        });
-    </script>
+                }
+                
+                // Verifica se está logado antes de voltar
+                const sessao = sessionStorage.getItem('psi_me_sessao') || localStorage.getItem('psi_me_sessao');
+                if (!sessao) {
+                    alert('Sessão expirada. Redirecionando para login...');
+                    window.location.href = 'home.html';
+                    e.preventDefault();
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+    });
+</script>
 </body>
 </html>

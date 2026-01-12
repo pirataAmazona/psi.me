@@ -1,13 +1,18 @@
 // ===============================================
-// 🔑 1. CONFIGURAÇÃO SUPABASE
+// 🔑 1. CONFIGURAÇÃO SUPABASE (GLOBAL)
 // ===============================================
 const SUPABASE_URL = 'https://kvsdsercsgezcdymihjx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2c2RzZXJjc2dlemNkeW1paGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1ODcwOTIsImV4cCI6MjA4MTE2MzA5Mn0.zpcV9L44zRtWlMJlYCK_VIaNSitIpagoGT37IBonq6w';
 
-let supabase = null;
-let psicologoLogado = null;
+// Instância global do Supabase
+window.supabaseClient = null;
+window.psicologoLogado = null;
 let modalRelato = null;
 let modalAberto = false;
+
+// Variáveis Globais para o Carrossel
+let slideIndex = 0;
+let totalSlides = 0;
 
 // ===============================================
 // 2. INICIALIZAÇÃO DO SUPABASE
@@ -15,7 +20,7 @@ let modalAberto = false;
 document.addEventListener('DOMContentLoaded', () => {
     try {
         if (window.supabase && typeof window.supabase.createClient === 'function') {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             console.log('✅ Supabase inicializado com sucesso!');
             
             // Verifica se há psicólogo logado
@@ -27,6 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Inicializar contadores
             inicializarContadores();
+            
+            // Adicionar botão de voltar
+            adicionarBotaoVoltarGlobal();
+            
+            // Testar conexão
+            setTimeout(() => {
+                testarConexaoSupabase();
+            }, 1000);
         } else {
             console.error('❌ Supabase não carregado.');
         }
@@ -148,7 +161,7 @@ async function fazerLogin() {
         return;
     }
     
-    if (!supabase) {
+    if (!window.supabaseClient) {
         alert('Sistema não inicializado. Tente novamente.');
         return;
     }
@@ -163,7 +176,7 @@ async function fazerLogin() {
     
     try {
         // 1. Buscar o psicólogo pelo email
-        const { data: psicologo, error: errorPsicologo } = await supabase
+        const { data: psicologo, error: errorPsicologo } = await window.supabaseClient
             .from('psicologos')
             .select('*')
             .eq('email', email)
@@ -179,7 +192,7 @@ async function fazerLogin() {
         }
         
         // 2. Buscar as credenciais de autenticação
-        const { data: auth, error: errorAuth } = await supabase
+        const { data: auth, error: errorAuth } = await window.supabaseClient
             .from('auth_psicologos')
             .select('*')
             .eq('psicologo_id', psicologo.id)
@@ -212,11 +225,11 @@ async function fazerLogin() {
             // Incrementar tentativas
             const novasTentativas = (auth.tentativas_login || 0) + 1;
             
-            await supabase
+            await window.supabaseClient
                 .from('auth_psicologos')
                 .update({ 
                     tentativas_login: novasTentativas,
-                    bloqueado_ate: novasTentativas >= 5 ? new Date(Date.now() + 30*60000).toISOString() : null // 30 minutos
+                    bloqueado_ate: novasTentativas >= 5 ? new Date(Date.now() + 30*60000).toISOString() : null
                 })
                 .eq('id', auth.id);
             
@@ -236,7 +249,7 @@ async function fazerLogin() {
         
         // 5. LOGIN BEM-SUCEDIDO
         // Resetar tentativas
-        await supabase
+        await window.supabaseClient
             .from('auth_psicologos')
             .update({ 
                 tentativas_login: 0,
@@ -245,13 +258,13 @@ async function fazerLogin() {
             .eq('id', auth.id);
         
         // Atualizar último login do psicólogo
-        await supabase
+        await window.supabaseClient
             .from('psicologos')
             .update({ ultimo_login: new Date().toISOString() })
             .eq('id', psicologo.id);
         
         // Salvar sessão
-        psicologoLogado = psicologo;
+        window.psicologoLogado = psicologo;
         salvarSessao(psicologo, lembrar);
         
         // Redirecionar
@@ -305,11 +318,11 @@ function verificarLoginAutomatico() {
     }
     
     if (sessao) {
-        psicologoLogado = JSON.parse(sessao);
-        console.log('✅ Psicólogo logado:', psicologoLogado.nome);
+        window.psicologoLogado = JSON.parse(sessao);
+        console.log('✅ Psicólogo logado:', window.psicologoLogado.nome);
         
         // Redirecionar da home se já estiver logado
-        if (window.location.pathname.includes('home.html') && psicologoLogado) {
+        if (window.location.pathname.includes('home.html') && window.psicologoLogado) {
             setTimeout(() => {
                 window.location.href = 'pgDeEscolha.html';
             }, 500);
@@ -328,7 +341,7 @@ function fazerLogout() {
         sessionStorage.removeItem('psi_me_sessao');
         localStorage.removeItem('psi_me_sessao');
         localStorage.removeItem('psi_me_sessao_expira');
-        psicologoLogado = null;
+        window.psicologoLogado = null;
         window.location.href = 'home.html';
     }
 }
@@ -337,7 +350,6 @@ function esqueciSenha() {
     const email = prompt('Digite seu email para redefinir a senha:');
     if (email) {
         alert(`Instruções de redefinição enviadas para ${email} (funcionalidade em desenvolvimento).`);
-        // Implementar: gerar token, enviar email, etc.
     }
 }
 
@@ -347,7 +359,7 @@ function esqueciSenha() {
 async function cadastrarPsicologo() {
     console.log('Função cadastrarPsicologo chamada');
     
-    if (!supabase) {
+    if (!window.supabaseClient) {
         alert('Sistema não inicializado. Recarregue a página.');
         return;
     }
@@ -411,7 +423,7 @@ async function cadastrarPsicologo() {
     try {
         // 1. Verificar se email já existe
         console.log('Verificando email...');
-        const { data: emailExistente, error: errorEmail } = await supabase
+        const { data: emailExistente, error: errorEmail } = await window.supabaseClient
             .from('psicologos')
             .select('id')
             .eq('email', dados.email)
@@ -426,7 +438,7 @@ async function cadastrarPsicologo() {
         
         // 2. Verificar se CPF já existe
         console.log('Verificando CPF...');
-        const { data: cpfExistente, error: errorCpf } = await supabase
+        const { data: cpfExistente, error: errorCpf } = await window.supabaseClient
             .from('psicologos')
             .select('id')
             .eq('cpf', dados.cpf)
@@ -452,7 +464,7 @@ async function cadastrarPsicologo() {
         
         console.log('Dados do psicólogo:', novoPsicologo);
         
-        const { data: psicologo, error: errorInsert } = await supabase
+        const { data: psicologo, error: errorInsert } = await window.supabaseClient
             .from('psicologos')
             .insert([novoPsicologo])
             .select()
@@ -480,14 +492,14 @@ async function cadastrarPsicologo() {
             password_hash: senhaHash
         };
         
-        const { error: errorAuth } = await supabase
+        const { error: errorAuth } = await window.supabaseClient
             .from('auth_psicologos')
             .insert([authData]);
         
         if (errorAuth) {
             console.error('Erro ao criar credenciais:', errorAuth);
             // Rollback: remover psicólogo criado
-            await supabase.from('psicologos').delete().eq('id', psicologo.id);
+            await window.supabaseClient.from('psicologos').delete().eq('id', psicologo.id);
             alert('Erro ao criar conta. Tente novamente.');
             btnCadastrar.textContent = originalText;
             btnCadastrar.disabled = false;
@@ -533,7 +545,7 @@ function configurarEventosPorPagina() {
         }
     }
     
-    // Página de Cadastro de Psicólogo (cadastro_profissional.html)
+    // Página de Cadastro de Psicólogo
     const formCadastroPsicologo = document.getElementById('form-cadastro-psicologo');
     if (formCadastroPsicologo) {
         formCadastroPsicologo.addEventListener('submit', (e) => {
@@ -542,13 +554,13 @@ function configurarEventosPorPagina() {
         });
     }
     
-    // Página de Cadastro de Paciente (pgInicioAdc.html)
+    // Página de Cadastro de Paciente
     const btnCadastrarPaciente = document.querySelector('button[onclick*="cadastrarNovoPaciente"]');
     if (btnCadastrarPaciente) {
         btnCadastrarPaciente.onclick = cadastrarNovoPaciente;
     }
     
-    // Página de Pesquisa (pgPesquisa.html) - ATUALIZADA
+    // Página de Pesquisa
     const formPesquisa = document.getElementById('form-pesquisa');
     if (formPesquisa) {
         formPesquisa.addEventListener('submit', function(e) {
@@ -556,7 +568,7 @@ function configurarEventosPorPagina() {
             pesquisarPacientes();
         });
         
-        // Adicionar evento para limpar resultados quando campo estiver vazio
+        // Adicionar evento para limpar resultados
         const termoInput = document.getElementById('termoPesquisa');
         if (termoInput) {
             termoInput.addEventListener('input', function(e) {
@@ -578,7 +590,7 @@ function configurarEventosPorPagina() {
         });
     }
     
-    // Página de Prontuário (registro.html)
+    // Página de Prontuário
     const formRelato = document.getElementById('form-novo-relato');
     if (formRelato) {
         const btnSalvar = formRelato.querySelector('button');
@@ -587,20 +599,14 @@ function configurarEventosPorPagina() {
         }
     }
     
-    // Página de Escolha (pgDeEscolha.html)
+    // Página de Escolha
     const btnContinuar = document.querySelector('button[onclick*="continuarAcao"]');
     if (btnContinuar) {
         btnContinuar.onclick = continuarAcao;
     }
     
-    // Home antigo (acessarSistema)
-    const btnAcessarSistema = document.querySelector('button[onclick*="acessarSistema"]');
-    if (btnAcessarSistema && btnAcessarSistema.onclick) {
-        btnAcessarSistema.onclick = fazerLogin;
-    }
-    
     // Adicionar botão de logout em todas as páginas (exceto home e cadastro)
-    if (psicologoLogado && !window.location.pathname.includes('home.html') && 
+    if (window.psicologoLogado && !window.location.pathname.includes('home.html') && 
         !window.location.pathname.includes('cadastro_profissional.html')) {
         setTimeout(() => {
             adicionarBotaoLogout();
@@ -608,40 +614,19 @@ function configurarEventosPorPagina() {
     }
 }
 
-function adicionarBotaoLogout() {
-    // Verificar se já existe
-    if (document.getElementById('btn-logout')) return;
-    
-    const btnLogout = document.createElement('button');
-    btnLogout.id = 'btn-logout';
-    btnLogout.textContent = 'Sair';
-    btnLogout.style.position = 'fixed';
-    btnLogout.style.top = '20px';
-    btnLogout.style.right = '20px';
-    btnLogout.style.padding = '8px 15px';
-    btnLogout.style.fontSize = '0.9rem';
-    btnLogout.style.backgroundColor = 'transparent';
-    btnLogout.style.color = 'var(--cor-secundaria)';
-    btnLogout.style.border = '1px solid var(--cor-secundaria)';
-    btnLogout.style.borderRadius = '10px';
-    btnLogout.style.cursor = 'pointer';
-    btnLogout.style.zIndex = '1000';
-    btnLogout.onclick = fazerLogout;
-    
-    document.body.appendChild(btnLogout);
-}
+
 
 // ===============================================
 // 7. FUNÇÕES DE PACIENTE
 // ===============================================
 async function cadastrarNovoPaciente() {
-    if (!supabase) {
+    if (!window.supabaseClient) {
         alert('Sistema não inicializado. Aguarde alguns segundos e tente novamente.');
         return;
     }
     
     // Verificar se está logado
-    if (!psicologoLogado) {
+    if (!window.psicologoLogado) {
         alert('Faça login para cadastrar pacientes.');
         window.location.href = 'home.html';
         return;
@@ -678,13 +663,13 @@ async function cadastrarNovoPaciente() {
         telefone: form.telefone.value ? form.telefone.value.replace(/\D/g, '') : '',
         email: form.email.value || '',
         obs: form.obs.value || '',
-        psicologo_id: psicologoLogado.id // Vincular ao psicólogo logado
+        psicologo_id: window.psicologoLogado.id
     };
     
     try {
         console.log('Enviando dados do paciente:', novoPaciente);
         
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('pacientes')
             .insert([novoPaciente])
             .select();
@@ -721,10 +706,8 @@ async function cadastrarNovoPaciente() {
 }
 
 // ===============================================
-// 8. FUNÇÕES DE PESQUISA DE PACIENTES (ATUALIZADAS)
+// 8. FUNÇÕES DE PESQUISA DE PACIENTES
 // ===============================================
-
-// NOVA FUNÇÃO: LIMPAR RESULTADOS DA PESQUISA
 function limparResultadosPesquisa() {
     const resultadosDiv = document.getElementById('resultados-pesquisa');
     if (resultadosDiv) {
@@ -742,7 +725,7 @@ function limparResultadosPesquisa() {
 }
 
 async function pesquisarPacientes() {
-    if (!supabase || !psicologoLogado) {
+    if (!window.supabaseClient || !window.psicologoLogado) {
         alert('Faça login para pesquisar pacientes.');
         window.location.href = 'home.html';
         return;
@@ -771,10 +754,10 @@ async function pesquisarPacientes() {
     resultadosDiv.innerHTML = '<div style="text-align: center; padding: 30px;"><p>🔍 Buscando pacientes...</p></div>';
     
     try {
-        let query = supabase
+        let query = window.supabaseClient
             .from('pacientes')
             .select('*')
-            .eq('psicologo_id', psicologoLogado.id);
+            .eq('psicologo_id', window.psicologoLogado.id);
         
         // Buscar por nome ou CPF
         query = query.or(`nome.ilike.%${termo}%,cpf.ilike.%${termo}%`);
@@ -801,10 +784,10 @@ async function pesquisarPacientes() {
         resultadosDiv.innerHTML = `
             <div class="texto-centralizado" style="padding: 40px;">
                 <p style="color: var(--cor-alerta);">Erro inesperado ao buscar pacientes</p>
-                    <button onclick="pesquisarPacientes()" class="btn-pequeno margem-superior">
-                        Tentar novamente
-                    </button>
-                </div>
+                <button onclick="pesquisarPacientes()" class="btn-pequeno margem-superior">
+                    Tentar novamente
+                </button>
+            </div>
         `;
     }
 }
@@ -855,7 +838,6 @@ function exibirResultados(pacientes, termoPesquisa = '') {
                     </p>
                 </div>
                 <div style="margin-top: 20px;">
-                    <!-- APENAS BOTÃO DE ACESSAR PRONTUÁRIO -->
                     <button onclick="acessarProntuario(${paciente.id}, '${paciente.nome.replace(/'/g, "\\'")}')"
                             class="largura-total">
                         📋 Acessar Prontuário
@@ -898,14 +880,14 @@ function carregarProntuario() {
 
 async function salvarRelato() {
     // Verificar se está logado
-    if (!psicologoLogado) {
+    if (!window.psicologoLogado) {
         alert('Sessão expirada. Faça login novamente.');
         window.location.href = 'home.html';
         return;
     }
     
     const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-    const relatoTexto = document.getElementById('relato').value.trim();
+    const relatoTexto = document.getElementById('relato')?.value.trim();
     
     if (!pacienteInfo.id) {
         alert('Paciente não identificado. Volte e selecione um paciente novamente.');
@@ -918,7 +900,7 @@ async function salvarRelato() {
         return;
     }
     
-    if (!supabase) {
+    if (!window.supabaseClient) {
         alert('Erro de conexão com o banco de dados. Tente novamente.');
         return;
     }
@@ -926,14 +908,14 @@ async function salvarRelato() {
     // Objeto para salvar no Supabase (incluindo psicólogo)
     const novaConsulta = {
         paciente_id: pacienteInfo.id,
-        psicologo_id: psicologoLogado.id, // Adicionar psicólogo
+        psicologo_id: window.psicologoLogado.id,
         relato: relatoTexto,
         data_consulta: new Date().toISOString()
     };
     
     try {
         // Salva no Supabase
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('consultas')
             .insert([novaConsulta])
             .select();
@@ -956,7 +938,9 @@ async function salvarRelato() {
         salvarRelatoLocal(pacienteInfo.id, relatoTexto, true);
         
         // Limpa o campo
-        document.getElementById('relato').value = '';
+        if (document.getElementById('relato')) {
+            document.getElementById('relato').value = '';
+        }
         
         // Recarrega o histórico
         await carregarHistorico();
@@ -969,7 +953,9 @@ async function salvarRelato() {
         
         // Fallback: salva localmente se o Supabase falhar
         salvarRelatoLocal(pacienteInfo.id, relatoTexto, false);
-        document.getElementById('relato').value = '';
+        if (document.getElementById('relato')) {
+            document.getElementById('relato').value = '';
+        }
         carregarHistoricoLocal(pacienteInfo.id);
     }
 }
@@ -997,7 +983,6 @@ function salvarRelatoLocal(pacienteId, relatoTexto, sincronizado = false) {
 // ===============================================
 // 10. FUNÇÕES DE HISTÓRICO
 // ===============================================
-
 async function carregarHistorico() {
     const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
     const pacienteId = pacienteInfo.id;
@@ -1012,11 +997,11 @@ async function carregarHistorico() {
     
     try {
         // Busca do Supabase (apenas consultas do psicólogo logado)
-        const { data: consultas, error } = await supabase
+        const { data: consultas, error } = await window.supabaseClient
             .from('consultas')
             .select('*')
             .eq('paciente_id', pacienteId)
-            .eq('psicologo_id', psicologoLogado.id)
+            .eq('psicologo_id', window.psicologoLogado.id)
             .order('data_consulta', { ascending: false });
         
         if (error) {
@@ -1051,9 +1036,12 @@ async function carregarHistorico() {
                 consulta.relato.substring(0, 200) + '...' : 
                 consulta.relato;
             
+            // Escapar aspas para evitar problemas no onclick
+            const textoEscapado = consulta.relato.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            
             html += `
             <div class="relato-card" style="cursor: pointer;" 
-                 onclick="abrirRelatoCompleto('${consulta.id}', '${dataFormatada}', '${horaFormatada}')">
+                 onclick="abrirRelatoCompleto('${consulta.id}', '${dataFormatada}', '${horaFormatada}', '${textoEscapado}')">
                 <div class="relato-header">
                     <span>${dataFormatada}</span>
                     <span>${horaFormatada}</span>
@@ -1105,9 +1093,12 @@ function carregarHistoricoLocal(pacienteId) {
             registro.texto.substring(0, 200) + '...' : 
             registro.texto;
         
+        // Escapar aspas para evitar problemas no onclick
+        const textoEscapado = registro.texto.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        
         html += `
         <div class="relato-card" style="cursor: pointer;" 
-             onclick="abrirRelatoCompleto('local_${Date.now()}', '${registro.data}', '${registro.hora}', \`${registro.texto.replace(/`/g, '\\`')}\`)">
+             onclick="abrirRelatoCompleto('local_${Date.now()}', '${registro.data}', '${registro.hora}', '${textoEscapado}')">
             <div class="relato-header">
                 <span>${registro.data}</span>
                 <span>${registro.hora}</span>
@@ -1158,12 +1149,12 @@ async function sincronizarRelatosLocais(pacienteId) {
             
             const novaConsulta = {
                 paciente_id: pacienteId,
-                psicologo_id: psicologoLogado.id,
+                psicologo_id: window.psicologoLogado.id,
                 relato: relato.texto,
                 data_consulta: dataConsulta.toISOString()
             };
             
-            const { error } = await supabase
+            const { error } = await window.supabaseClient
                 .from('consultas')
                 .insert([novaConsulta]);
             
@@ -1227,6 +1218,7 @@ function atualizarRegistrosLocaisComSupabase(consultasSupabase, pacienteId) {
     setRegistros(registros);
 }
 
+// Função para abrir relatório completo (CORRIGIDA)
 function abrirRelatorioCompleto() {
     const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
     
@@ -1236,7 +1228,10 @@ function abrirRelatorioCompleto() {
     } else {
         alert('Nenhum paciente selecionado para gerar relatório.');
     }
-    
+}
+
+// Função para abrir relato completo (NOVA FUNÇÃO)
+function abrirRelatoCompleto(relatoId, data, hora, texto = '') {
     // Codificar parâmetros para URL
     const textoCodificado = texto ? encodeURIComponent(texto) : '';
     const dataHora = encodeURIComponent(`${data} às ${hora}`);
@@ -1267,7 +1262,7 @@ function acessarSistema() {
 }
 
 function continuarAcao() {
-    if (!psicologoLogado) {
+    if (!window.psicologoLogado) {
         alert('Faça login para continuar.');
         window.location.href = 'home.html';
         return;
@@ -1296,14 +1291,14 @@ function continuarAcao() {
 // 13. FUNÇÕES DE TESTE
 // ===============================================
 async function testarConexaoSupabase() {
-    if (!supabase) {
+    if (!window.supabaseClient) {
         console.error('Supabase não inicializado');
         return false;
     }
     
     try {
         // Testa a conexão com uma consulta simples
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('pacientes')
             .select('count')
             .limit(1);
@@ -1321,79 +1316,23 @@ async function testarConexaoSupabase() {
     }
 }
 
-// Função para carregar o registro detalhado na página de detalhes
-async function carregarRegistroDetalhado() {
-    const registroId = localStorage.getItem('registroSelecionado');
-    
-    if (!registroId) {
-        document.getElementById('conteudo-registro').innerHTML = 
-            '<p>Nenhum registro selecionado.</p>';
-        return;
-    }
-    
-    // Buscar o registro no Supabase
-    const { data, error } = await supabase
-        .from('registros')
-        .select('*')
-        .eq('id', registroId)
-        .single();
-    
-    if (error) {
-        console.error('Erro ao buscar registro:', error);
-        document.getElementById('conteudo-registro').innerHTML = 
-            '<p>Erro ao carregar o registro.</p>';
-        return;
-    }
-    
-    const dataFormatada = new Date(data.data).toLocaleDateString('pt-BR');
-    const horaFormatada = new Date(data.data).toLocaleTimeString('pt-BR');
-    
-    document.getElementById('conteudo-registro').innerHTML = `
-        <div class="cabecalho-detalhado">
-            <h2>Consulta de ${dataFormatada}</h2>
-            <p class="hora-registro">${horaFormatada}</p>
-        </div>
-        <div class="texto-completo">
-            ${data.relato.replace(/\n/g, '<br>')}
-        </div>
-    `;
-}
-
 // ===============================================
-// 14. INICIALIZAÇÃO DE TESTE
+// 14. FUNÇÕES DE CARROSSEL
 // ===============================================
-
-// Inicializa teste de conexão quando a página carrega
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            testarConexaoSupabase();
-        }, 1000);
-    });
-} else {
-    setTimeout(() => {
-        testarConexaoSupabase();
-    }, 1000);
-}
-
-// Variáveis Globais para o Carrossel
-let slideIndex = 0;
-let totalSlides = 0;
-
-/**
- * Atualiza a posição do carrossel.
- * @param {number} n - 1 para avançar, -1 para voltar.
- */
 function mudarSlide(n) {
     slideIndex += n;
     const wrapper = document.getElementById('historico-wrapper');
     
+    if (!wrapper) return;
+    
+    totalSlides = wrapper.children.length;
+    
     // Garante que o índice não saia dos limites
     if (slideIndex >= totalSlides) {
-        slideIndex = 0; // Volta para o primeiro
+        slideIndex = 0;
     }
     if (slideIndex < 0) {
-        slideIndex = totalSlides - 1; // Vai para o último
+        slideIndex = totalSlides - 1;
     }
     
     // Calcula a translação horizontal necessária
@@ -1401,10 +1340,10 @@ function mudarSlide(n) {
 }
 
 // ===============================================
-// FUNÇÃO PARA ADICIONAR BOTÃO DE VOLTAR EM TODAS AS PÁGINAS
+// FUNÇÃO PARA ADICIONAR BOTÃO DE VOLTAR
 // ===============================================
 function adicionarBotaoVoltarGlobal() {
-    // Não adiciona botão de voltar nas páginas iniciais
+    // Não adicionar botão de voltar nas páginas iniciais
     if (window.location.pathname.includes('home.html') || 
         window.location.pathname.includes('cadastro_profissional.html')) {
         return;
@@ -1419,13 +1358,13 @@ function adicionarBotaoVoltarGlobal() {
     
     if (window.location.pathname.includes('pgPesquisa.html')) {
         destino = 'pgDeEscolha.html';
-        texto = '← Voltar';
+         texto = '← Sair'
     } else if (window.location.pathname.includes('registro.html')) {
         destino = 'pgPesquisa.html';
-        texto = '← Voltar';
+        let texto = '← Voltar'
     } else if (window.location.pathname.includes('pgInicioAdc.html')) {
         destino = 'pgDeEscolha.html';
-        texto = '← Voltar';
+         texto = '← Sair'
     } else if (window.location.pathname.includes('pgDeEscolha.html')) {
         destino = 'home.html';
         texto = '← Sair';
@@ -1480,194 +1419,16 @@ function adicionarBotaoVoltarGlobal() {
     }
 }
 
-// Adiciona a função ao carregar a página
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', adicionarBotaoVoltarGlobal);
-} else {
-    adicionarBotaoVoltarGlobal();
-}
-
 // ================================================
-// FUNÇÕES ESPECÍFICAS PARA PÁGINA DE REGISTRO
+// FUNÇÕES ADICIONAIS PARA REGISTRO.HTML
 // ================================================
 
-/**
- * Atualiza a data da última consulta na interface
- */
-function atualizarDataUltimaConsulta() {
-    if (window.consultasPaciente && window.consultasPaciente.length > 0) {
-        const ultimaConsulta = window.consultasPaciente[0];
-        const data = new Date(ultimaConsulta.data_consulta);
-        const dataFormatada = data.toLocaleDateString('pt-BR');
-        
-        const elementoData = document.getElementById('data-ultima-consulta');
-        if (elementoData) {
-            elementoData.textContent = dataFormatada;
-        }
-        
-        const containerUltimaConsulta = document.getElementById('ultima-consulta');
-        if (containerUltimaConsulta) {
-            containerUltimaConsulta.style.display = 'block';
-        }
-    } else {
-        const containerUltimaConsulta = document.getElementById('ultima-consulta');
-        if (containerUltimaConsulta) {
-            containerUltimaConsulta.style.display = 'none';
-        }
-    }
-}
-
-/**
- * Carrega informações do paciente do Supabase
- */
-async function carregarPacienteDoSupabase(pacienteId) {
-    console.log('Buscando paciente no Supabase, ID:', pacienteId);
-    
-    if (!supabase) {
-        throw new Error('Supabase não inicializado');
-    }
-    
-    try {
-        const { data: paciente, error } = await supabase
-            .from('pacientes')
-            .select('*')
-            .eq('id', pacienteId)
-            .single();
-        
-        if (error) {
-            console.error('Erro Supabase paciente:', error);
-            throw new Error('Paciente não encontrado no banco de dados');
-        }
-        
-        // Salvar no localStorage para uso na página
-        localStorage.setItem('pacienteAtualDetalhado', JSON.stringify(paciente));
-        
-        // Atualizar título da página
-        const titulo = document.getElementById('paciente-nome-titulo');
-        if (titulo) {
-            titulo.textContent = paciente.nome || 'Paciente';
-        }
-        
-        console.log('✅ Paciente carregado do Supabase:', paciente.nome);
-        
-        return paciente;
-        
-    } catch (erro) {
-        console.error('Erro ao carregar paciente:', erro);
-        throw erro;
-    }
-}
-
-/**
- * Carrega consultas do paciente do Supabase
- */
-async function carregarConsultasDoSupabase(pacienteId) {
-    console.log('Buscando consultas no Supabase para paciente:', pacienteId);
-    
-    if (!supabase || !psicologoLogado) {
-        throw new Error('Sistema não inicializado ou psicólogo não logado');
-    }
-    
-    try {
-        // Buscar consultas no Supabase
-        const { data: consultas, error } = await supabase
-            .from('consultas')
-            .select('*')
-            .eq('paciente_id', pacienteId)
-            .eq('psicologo_id', psicologoLogado.id)
-            .order('data_consulta', { ascending: false });
-        
-        if (error) {
-            console.error('Erro ao carregar consultas:', error);
-            return [];
-        }
-        
-        console.log(`✅ ${consultas?.length || 0} consultas carregadas do Supabase`);
-        
-        // Salvar em variável global para uso na página
-        window.consultasPaciente = consultas || [];
-        
-        return window.consultasPaciente;
-        
-    } catch (erro) {
-        console.error('Erro ao carregar consultas:', erro);
-        return [];
-    }
-}
-
-/**
- * Exibe o histórico de consultas na página
- */
-function exibirHistoricoConsultas() {
-    const historicoDiv = document.getElementById('lista-historico');
-    
-    if (!historicoDiv) return;
-    
-    if (!window.consultasPaciente || window.consultasPaciente.length === 0) {
-        historicoDiv.innerHTML = `
-            <div style="text-align: center; padding: 30px; color: var(--cor-texto-claro);">
-                <p>Nenhuma consulta registrada ainda.</p>
-                <p style="font-size: 0.9rem; margin-top: 10px;">
-                    Registre sua primeira consulta acima.
-                </p>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    window.consultasPaciente.forEach(consulta => {
-        const data = new Date(consulta.data_consulta);
-        const dataFormatada = data.toLocaleDateString('pt-BR');
-        const horaFormatada = data.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        
-        // Resumo do texto
-        const textoResumido = consulta.relato.length > 200 ? 
-            consulta.relato.substring(0, 200) + '...' : 
-            consulta.relato;
-        
-        html += `
-        <div class="relato-card" onclick="abrirRelatoCompleto('${consulta.id}', '${dataFormatada}', '${horaFormatada}')">
-            <div class="relato-header">
-                <span>${dataFormatada}</span>
-                <span>${horaFormatada}</span>
-                <span style="color: var(--cor-secundaria); font-size: 0.85rem;">
-                    📖 Clique para ver completo
-                </span>
-            </div>
-            <p class="relato-texto">
-                ${textoResumido.replace(/\n/g, '<br>')}
-            </p>
-        </div>
-        `;
-    });
-    
-    historicoDiv.innerHTML = html;
-}
-
-/**
- * Atualiza o contador de consultas
- */
-function atualizarContadorConsultas() {
-    const contador = document.getElementById('contador-consultas');
-    if (contador && window.consultasPaciente) {
-        contador.textContent = `(${window.consultasPaciente.length})`;
-    }
-}
-
-/**
- * Função para salvar relato com feedback visual melhorado
- * Substitui a função salvarRelato() na página de registro
- */
+// Função de feedback para salvar relato (para registro.html)
 async function salvarRelatoComFeedback() {
-    const btnSalvar = document.getElementById('btn-salvar-relato');
+    const btnSalvar = document.querySelector('.btn-salvar');
     const statusDiv = document.getElementById('status-salvamento');
     const relatoTexto = document.getElementById('relato')?.value.trim();
     
-    // Validar
     if (!relatoTexto) {
         if (statusDiv) {
             statusDiv.className = 'status-salvamento status-erro';
@@ -1703,12 +1464,9 @@ async function salvarRelatoComFeedback() {
             campoRelato.value = '';
         }
         
-        // Recarregar consultas e atualizar interface
+        // Recarregar histórico após salvar
         setTimeout(async () => {
-            const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-            await carregarConsultasDoSupabase(pacienteStorage.id);
-            exibirHistoricoConsultas();
-            atualizarContadorConsultas();
+            await carregarHistorico();
             
             if (statusDiv) {
                 statusDiv.textContent = '✅ Relato salvo e histórico atualizado!';
@@ -1731,229 +1489,132 @@ async function salvarRelatoComFeedback() {
         // Reabilitar botão
         if (btnSalvar) {
             btnSalvar.disabled = false;
-            btnSalvar.innerHTML = '💾 Salvar Relato';
+            btnSalvar.innerHTML = '💾 Salvar Consulta';
         }
     }
 }
 
-/**
- * Função para mostrar/ocultar histórico
- */
-function toggleHistorico() {
-    const wrapper = document.getElementById('lista-historico-wrapper');
-    const btn = document.getElementById('toggle-history-btn');
-    
-    if (!wrapper || !btn) return;
-    
-    const historicoVisivel = !wrapper.classList.contains('historico-oculto');
-    
-    if (historicoVisivel) {
-        wrapper.classList.add('historico-oculto');
-        btn.textContent = 'Mostrar';
-    } else {
-        wrapper.classList.remove('historico-oculto');
-        btn.textContent = 'Ocultar';
-    }
-}
-
-/**
- * Função para recarregar a página
- */
-function recarregarPagina() {
-    if (confirm('Recarregar dados do paciente?')) {
-        const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-        if (pacienteStorage.id) {
-            carregarConsultasDoSupabase(pacienteStorage.id);
-            exibirHistoricoConsultas();
-            atualizarContadorConsultas();
-        }
-    }
-}
-
-/**
- * Atualiza estatísticas na página (opcional)
- */
-function atualizarEstatisticas() {
-    // Esta função depende da estrutura HTML da página
-    // Você pode implementar conforme necessário
-    const totalConsultas = window.consultasPaciente?.length || 0;
-    
-    // Atualizar elementos HTML se existirem
-    const totalElement = document.getElementById('total-consultas');
-    if (totalElement) totalElement.textContent = totalConsultas;
-}
-
-/**
- * Função para carregar dados do paciente
- */
-async function carregarDadosPaciente() {
+// Função para gerar relatório (para registro.html)
+function gerarRelatorioPaciente() {
     const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
     
-    if (pacienteStorage.nome) {
-        document.getElementById('paciente-nome-titulo').textContent = pacienteStorage.nome;
-    }
-    
-    // Atualizar dados do paciente
-    try {
-        if (pacienteStorage.id) {
-            const paciente = await carregarPacienteDoSupabase(pacienteStorage.id);
-            if (paciente) {
-                exibirDadosPaciente(paciente);
-            }
-        }
-    } catch (erro) {
-        console.error('Erro ao carregar dados do paciente:', erro);
-    }
-}
-
-/**
- * Exibe dados do paciente na interface
- */
-function exibirDadosPaciente(paciente) {
-    const container = document.getElementById('dados-paciente');
-    
-    if (!container) return;
-    
-    // Formatar CPF
-    const cpfFormatado = paciente.cpf ? 
-        paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 
-        'Não informado';
-    
-    // Formatar telefone
-    const telefoneFormatado = paciente.telefone ? 
-        paciente.telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : 
-        'Não informado';
-    
-    // Formatar data de nascimento
-    const dataNasc = paciente.nascimento ? 
-        new Date(paciente.nascimento).toLocaleDateString('pt-BR') : 
-        'Não informado';
-    
-    container.innerHTML = `
-        <div class="dado-item">
-            <div class="dado-label">CPF:</div>
-            <div class="dado-valor">${cpfFormatado}</div>
-        </div>
-        <div class="dado-item">
-            <div class="dado-label">Data de Nascimento:</div>
-            <div class="dado-valor">${dataNasc}</div>
-        </div>
-        <div class="dado-item">
-            <div class="dado-label">Telefone:</div>
-            <div class="dado-valor">${telefoneFormatado}</div>
-        </div>
-        <div class="dado-item">
-            <div class="dado-label">E-mail:</div>
-            <div class="dado-valor">${paciente.email || 'Não informado'}</div>
-        </div>
-        <div class="dado-item">
-            <div class="dado-label">Endereço:</div>
-            <div class="dado-valor">${paciente.endereco || 'Não informado'}</div>
-        </div>
-        <div class="dado-item">
-            <div class="dado-label">Posto de Atendimento:</div>
-            <div class="dado-valor">${paciente.posto || 'Não informado'}</div>
-        </div>
-        ${paciente.obs ? `
-        <div class="dado-item" style="grid-column: 1 / -1;">
-            <div class="dado-label">Observações:</div>
-            <div class="dado-valor">${paciente.obs}</div>
-        </div>
-        ` : ''}
-    `;
-}
-
-// ================================================
-// FUNÇÃO PARA INICIALIZAR CONTADORES
-// ================================================
-function inicializarContadores() {
-    // Inicializar contador de pacientes se estiver na página de pesquisa
-    if (window.location.pathname.includes('pgPesquisa.html') && psicologoLogado) {
-        atualizarContadorPacientes();
-    }
-}
-
-// ================================================
-// FUNÇÃO PARA ATUALIZAR CONTADOR DE PACIENTES
-// ================================================
-async function atualizarContadorPacientes() {
-    if (!supabase || !psicologoLogado) return;
-    
-    try {
-        const { count, error } = await supabase
-            .from('pacientes')
-            .select('*', { count: 'exact', head: true })
-            .eq('psicologo_id', psicologoLogado.id);
+    if (pacienteStorage.id) {
+        // Armazenar o ID do paciente para a página de relatório
+        localStorage.setItem('pacienteParaRelatorio', JSON.stringify(pacienteStorage));
         
-        if (!error && count !== null) {
-            const contadorElement = document.getElementById('contador-pacientes');
-            if (contadorElement) {
-                contadorElement.textContent = `(${count} pacientes cadastrados)`;
-            }
-        }
-    } catch (erro) {
-        console.error('Erro ao atualizar contador de pacientes:', erro);
+        // Redirecionar para a página de relatório
+        window.location.href = 'relatorio_paciente.html';
+    } else {
+        alert('❌ Nenhum paciente selecionado.');
     }
+    // ================================================
+// FUNÇÕES DE AGENDAMENTO
+// ================================================
+
+// Função para acessar agendamento a partir do prontuário
+// ================================================
+// FUNÇÃO DE AGENDAMENTO - ADICIONE ISSO NO FINAL DO ARQUIVO
+// ================================================
+
+function acessarAgendamento() {
+    console.log('Função acessarAgendamento chamada');
+    
+    // Verificar se há paciente selecionado
+    const pacienteStorage = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+    
+    if (!pacienteStorage || !pacienteStorage.id) {
+        alert('❌ Selecione um paciente primeiro.');
+        window.location.href = 'pgPesquisa.html';
+        return;
+    }
+    
+    // Verificar se está logado
+    if (!window.psicologoLogado) {
+        alert('🔒 Faça login para acessar o agendamento.');
+        window.location.href = 'home.html';
+        return;
+    }
+    
+    console.log('Redirecionando para agendamento...');
+    window.location.href = 'agendamento.html';
 }
 
-// ================================================
-// FUNÇÃO PARA ATUALIZAR ÚLTIMO ACESSO
-// ================================================
-function atualizarUltimoAcesso() {
-    if (psicologoLogado) {
-        const ultimoAcesso = new Date().toLocaleString('pt-BR');
-        const elementoAcesso = document.getElementById('ultimo-acesso');
-        if (elementoAcesso) {
-            elementoAcesso.textContent = `Último acesso: ${ultimoAcesso}`;
-        }
-    }
+// EXPORTAR PARA USO GLOBAL
+window.acessarAgendamento = acessarAgendamento;
+
+// Adicionar botão de agendamento na página de registro
+function adicionarBotaoAgendamento() {
+    if (!window.location.pathname.includes('registro.html')) return;
+    
+    // Verificar se já existe
+    if (document.getElementById('btn-agendar-consulta')) return;
+    
+    const btnAgendar = document.createElement('button');
+    btnAgendar.id = 'btn-agendar-consulta';
+    btnAgendar.innerHTML = '📅 Agendar Consulta';
+    btnAgendar.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background-color: var(--cor-primaria);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 1000;
+        box-shadow: var(--sombra-suave);
+    `;
+    
+    btnAgendar.onclick = acessarAgendamento;
+    btnAgendar.onmouseover = function() {
+        this.style.backgroundColor = 'var(--cor-primaria-escura)';
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+    };
+    
+    btnAgendar.onmouseout = function() {
+        this.style.backgroundColor = 'var(--cor-primaria)';
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = 'var(--sombra-suave)';
+    };
+    
+    document.body.appendChild(btnAgendar);
 }
 
-// Inicializar atualização de último acesso
-setTimeout(atualizarUltimoAcesso, 1000);
-
-// ================================================
-// FUNÇÃO PARA VERIFICAR CONEXÃO COM INTERNET
-// ================================================
-function verificarConexaoInternet() {
-    if (!navigator.onLine) {
-        alert('⚠️ Você está offline. Algumas funcionalidades podem não estar disponíveis.');
-        return false;
-    }
-    return true;
-}
-
-// Adicionar evento para verificar conexão
-window.addEventListener('online', function() {
-    console.log('✅ Conexão com internet restaurada.');
+// Chamar na inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    // ... código existente ...
+    
+    // Adicionar botão de agendamento na página de registro
+    adicionarBotaoAgendamento();
 });
-
-window.addEventListener('offline', function() {
-    console.log('⚠️ Conexão com internet perdida.');
-    alert('⚠️ Você está offline. Os dados serão salvos localmente e sincronizados quando a conexão voltar.');
-});
-
-// Verificar conexão inicial
-if (!verificarConexaoInternet()) {
-    console.log('Modo offline ativado.');
 }
 
 // ================================================
-// EXPORTAÇÃO GLOBAL DAS FUNÇÕES PARA REGISTRO.HTML
+// EXPORTAÇÃO GLOBAL DAS FUNÇÕES
 // ================================================
 
-// Expor supabase e psicologoLogado como variáveis globais
-window.supabaseGlobal = supabase;
-window.psicologoLogadoGlobal = psicologoLogado;
-
-// Expor funções que serão usadas no registro.html
-window.carregarHistoricoGlobal = carregarHistorico;
-window.salvarRelatoGlobal = salvarRelato;
-window.carregarDadosPacienteGlobal = carregarDadosPaciente;
-window.atualizarDataUltimaConsultaGlobal = atualizarDataUltimaConsulta;
-
-// Atualizar as variáveis globais quando mudarem
-setInterval(() => {
-    window.supabaseGlobal = supabase;
-    window.psicologoLogadoGlobal = psicologoLogado;
-}, 1000);
+// Exportar funções para uso global
+window.fazerLogin = fazerLogin;
+window.fazerLogout = fazerLogout;
+window.cadastrarNovoPaciente = cadastrarNovoPaciente;
+window.pesquisarPacientes = pesquisarPacientes;
+window.acessarProntuario = acessarProntuario;
+window.salvarRelato = salvarRelato;
+window.carregarHistorico = carregarHistorico;
+window.abrirRelatorioCompleto = abrirRelatorioCompleto;
+window.abrirRelatoCompleto = abrirRelatoCompleto;
+window.continuarAcao = continuarAcao;
+window.esqueciSenha = esqueciSenha;
+window.cadastrarPsicologo = cadastrarPsicologo;
+window.salvarRelatoComFeedback = salvarRelatoComFeedback;
+window.gerarRelatorioPaciente = gerarRelatorioPaciente;
+window.acessarAgendamento = acessarAgendamento; // <-- ADICIONE ESTA LINHA

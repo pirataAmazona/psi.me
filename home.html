@@ -7,17 +7,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&family=Georgia&display=swap" rel="stylesheet"> 
-
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Sacramento&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="no-scroll"> <div class="home-grid">
         
         <div class="intro-column">
             <h1><a href="home.html">Psi.me</a></h1>
-            <h2>Seu painel de cuidado</h2> <p class="intro-text">
-                Simplifique sua rotina clínica e eleve o foco do seu trabalho. O Psi.me é a solução inteligente e segura, desenhada por psicólogos para psicólogos, garantindo que a gestão de prontuários seja tão humanizada quanto o seu atendimento.
-            </p>
+            <h2>O cuidado começa pela organização</h2> <p class="intro-text">
+                Da primeira sessão ao momento de alta, cada detalhe importa. Nós guardamos a linha do tempo do cuidado, 
+                transformando anotações em narrativas de crescimento, para que você e seu paciente possam ver, juntos, o caminho percorrido.
         </div>
 
         <div class="container login-container">
@@ -30,7 +29,8 @@
                 <input type="password" id="senha" name="senha" required>
             
 
-                <button type="button" onclick="fazerLogin()">Entrar</button>
+                <!-- Substitua apenas o botão de login -->
+<button type="button" onclick="window.fazerLogin ? window.fazerLogin() : alert('Sistema não carregado. Recarregue a página.')">Entrar</button>
                 
                 <div style="text-align: center; margin-top: 20px;">
                     <a href="#" onclick="esqueciSenha(); return false;" style="color: var(--cor-secundaria); text-decoration: none;">

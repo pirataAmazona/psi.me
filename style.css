@@ -593,3 +593,192 @@ button:active, .submit-btn:active {
     color: var(--cor-secundaria);
     font-weight: 600;
 }
+/* =============================================== */
+/* RESET E ESTILOS GERAIS DE FONTES */
+/* =============================================== */
+
+/* APLICAÇÃO GLOBAL DA FONTE EM TODOS OS ELEMENTOS */
+* {
+    font-family: 'Poppins', sans-serif !important;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Garantir que o body tenha a fonte correta */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    line-height: 1.7;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* Forçar a fonte em todos os elementos de texto */
+h1, h2, h3, h4, h5, h6,
+p, span, a, li, td, th,
+input, textarea, select, button, label,
+div, section, article, header, footer,
+.paciente-info, .relato-card, .option-box,
+.cadastro-link, .intro-text {
+    font-family: 'Poppins', sans-serif !important;
+}
+
+/* Exceção para o logo Psi.me - manter a fonte cursiva */
+h1 a {
+    font-family: 'Sacramento', cursive !important;
+    font-size: 4rem;
+    font-weight: 400;
+    line-height: 1;
+}
+
+/* Versão mobile do logo */
+@media (max-width: 992px) {
+    h1 a {
+        font-size: 3.5rem;
+    }
+}
+
+/* Garantir que inputs, textareas e botões herdem a fonte */
+input, textarea, select, button {
+    font-family: inherit !important;
+}
+
+/* Forçar a fonte em elementos específicos que possam sobrescrever */
+.container, .container-livro,
+.login-container, .home-grid,
+.book-container, .coluna,
+.modal-content, .paciente-info-resumo {
+    font-family: 'Poppins', sans-serif !important;
+}
+
+/* =============================================== */
+/* ESTILOS ESPECÍFICOS DE TIPOGRAFIA */
+/* =============================================== */
+
+/* Títulos - manter a cor personalizada mas com Poppins */
+h1, h2, h3, h4 {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: var(--espacamento-sm);
+    color: var(--cor-secundaria);
+}
+
+/* Subtítulos da página inicial */
+.intro-column h2 {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin-top: 0;
+    margin-bottom: var(--espacamento-lg);
+    color: var(--cor-secundaria);
+}
+
+/* Texto de introdução */
+.intro-text {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: var(--cor-texto);
+    margin-top: var(--espacamento-md);
+}
+
+/* Labels de formulário */
+label {
+    font-family: 'Poppins', sans-serif !important;
+    display: block;
+    margin-bottom: var(--espacamento-xs);
+    font-weight: 600;
+    color: var(--cor-texto);
+    font-size: 1rem;
+}
+
+/* Botões */
+button, .submit-btn {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+/* Links de cadastro */
+.cadastro-link {
+    font-family: 'Poppins', sans-serif !important;
+    text-align: center;
+    margin-top: var(--espacamento-lg);
+    padding-top: var(--espacamento-md);
+    border-top: 1px solid var(--cor-borda);
+    color: var(--cor-texto-claro);
+}
+
+/* Opções na página de escolha */
+.option-box label {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1.15rem;
+}
+
+/* Cards de relato */
+.relato-card {
+    font-family: 'Poppins', sans-serif !important;
+}
+
+.relato-header {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.9rem;
+}
+
+/* Informações do paciente */
+.paciente-info {
+    font-family: 'Poppins', sans-serif !important;
+}
+
+.paciente-info-resumo {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1.0rem;
+}
+
+/* =============================================== */
+/* RESPONSIVIDADE - AJUSTES DE FONTE */
+/* =============================================== */
+
+@media (max-width: 992px) {
+    /* Logo mobile */
+    .intro-column h1 a {
+        font-family: 'Sacramento', cursive !important;
+        font-size: 4rem;
+    }
+    
+    /* Títulos mobile */
+    h1 a {
+        font-family: 'Sacramento', cursive !important;
+        font-size: 3.5rem;
+    }
+    
+    h1 {
+        font-family: 'Poppins', sans-serif !important;
+        font-size: 2.5rem;
+    }
+    
+    h2 {
+        font-family: 'Poppins', sans-serif !important;
+        font-size: 1.75rem;
+    }
+    
+    .intro-column h2 {
+        font-family: 'Poppins', sans-serif !important;
+        font-size: 1.5rem;
+    }
+    
+    .intro-text {
+        font-family: 'Poppins', sans-serif !important;
+        font-size: 1.1rem;
+    }
+}
+
+/* =============================================== */
+/* IMPORT DA FONTE POOPINS (se ainda não estiver) */
+/* =============================================== */
+/* Esta importação já está no head das páginas HTML */
+/* Se precisar adicionar via CSS: */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Sacramento&display=swap');

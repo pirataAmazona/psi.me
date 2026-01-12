@@ -172,237 +172,217 @@
         </div>
     </div>
     
-    <!-- JavaScript específico desta página -->
-    <script>
-        // ================================================
-        // CONFIGURAÇÃO DO SUPABASE (MESMA DAS OUTRAS PÁGINAS)
-        // ================================================
-        const SUPABASE_URL = 'https://kvsdsercsgezcdymihjx.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2c2RzZXJjc2dlemNkeW1paGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1ODcwOTIsImV4cCI6MjA4MTE2MzA5Mn0.zpcV9L44zRtWlMJlYCK_VIaNSitIpagoGT37IBonq6w';
+<script>
+    // ================================================
+    // FUNÇÕES PRINCIPAIS
+    // ================================================
+    
+    // Inicializar quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarRelatoDaURL();
+    });
+    
+    // 1. Carregar relato da URL
+    async function carregarRelatoDaURL() {
+        // Pegar parâmetros da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const relatoId = urlParams.get('id');
+        const dataParam = urlParams.get('data') || '';
+        const textoLocal = urlParams.get('texto');
         
-        let supabase = null;
+        console.log('Parâmetros da URL:', { relatoId, dataParam, textoLocal });
         
-        // ================================================
-        // FUNÇÕES PRINCIPAIS
-        // ================================================
-        
-        // Inicializar quando a página carregar
-        document.addEventListener('DOMContentLoaded', function() {
-            inicializarSupabase();
-            carregarRelatoDaURL();
-        });
-        
-        // 1. Inicializar conexão com Supabase
-        function inicializarSupabase() {
-            try {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log('✅ Supabase inicializado na página de relato');
-            } catch (e) {
-                console.error('❌ Erro ao inicializar Supabase:', e);
-                mostrarErro('Erro de conexão com o banco de dados.');
-            }
+        if (!relatoId && !textoLocal) {
+            mostrarErro('Nenhum relato especificado na URL.');
+            return;
         }
         
-        // 2. Carregar relato da URL
-        async function carregarRelatoDaURL() {
-            // Pegar parâmetros da URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const relatoId = urlParams.get('id');
-            const dataParam = urlParams.get('data') || '';
-            const textoLocal = urlParams.get('texto');
+        try {
+            let relatoData = null;
             
-            console.log('Parâmetros da URL:', { relatoId, dataParam, textoLocal });
-            
-            if (!relatoId && !textoLocal) {
-                mostrarErro('Nenhum relato especificado na URL.');
-                return;
+            // SE TEM ID: buscar do Supabase
+            if (relatoId && !relatoId.startsWith('local_') && window.supabaseClient) {
+                relatoData = await buscarRelatoDoSupabase(relatoId);
             }
             
-            try {
-                let relatoData = null;
-                
-                // SE TEM ID: buscar do Supabase
-                if (relatoId && !relatoId.startsWith('local_')) {
-                    relatoData = await buscarRelatoDoSupabase(relatoId);
-                }
-                
-                // SE NÃO ENCONTROU NO SUPABASE ou É LOCAL: usar dados da URL
-                if (!relatoData && textoLocal) {
-                    relatoData = {
-                        relato: decodeURIComponent(textoLocal),
-                        data_consulta: dataParam ? dataParam.replace(' às ', ' ') : new Date().toISOString()
-                    };
-                }
-                
-                // SE AINDA NÃO TEM DADOS: tentar localStorage
-                if (!relatoData) {
-                    relatoData = await buscarRelatoDoLocalStorage(relatoId, dataParam);
-                }
-                
-                // Exibir os dados
-                if (relatoData) {
-                    exibirRelato(relatoData, dataParam);
-                } else {
-                    mostrarErro('Relato não encontrado.');
-                }
-                
-            } catch (erro) {
-                console.error('Erro ao carregar relato:', erro);
-                mostrarErro('Erro ao carregar o relato: ' + erro.message);
+            // SE NÃO ENCONTROU NO SUPABASE ou É LOCAL: usar dados da URL
+            if (!relatoData && textoLocal) {
+                relatoData = {
+                    relato: decodeURIComponent(textoLocal),
+                    data_consulta: dataParam ? dataParam.replace(' às ', ' ') : new Date().toISOString()
+                };
             }
+            
+            // SE AINDA NÃO TEM DADOS: tentar localStorage
+            if (!relatoData) {
+                relatoData = await buscarRelatoDoLocalStorage(relatoId, dataParam);
+            }
+            
+            // Exibir os dados
+            if (relatoData) {
+                exibirRelato(relatoData, dataParam);
+            } else {
+                mostrarErro('Relato não encontrado.');
+            }
+            
+        } catch (erro) {
+            console.error('Erro ao carregar relato:', erro);
+            mostrarErro('Erro ao carregar o relato: ' + erro.message);
+        }
+    }
+    
+    // 2. Buscar relato do Supabase
+    async function buscarRelatoDoSupabase(relatoId) {
+        if (!window.supabaseClient) {
+            throw new Error('Supabase não inicializado');
         }
         
-        // 3. Buscar relato do Supabase
-        async function buscarRelatoDoSupabase(relatoId) {
-            if (!supabase) {
-                throw new Error('Supabase não inicializado');
-            }
-            
-            console.log('Buscando relato do Supabase, ID:', relatoId);
-            
-            const { data, error } = await supabase
-                .from('consultas')
-                .select('*')
-                .eq('id', relatoId)
-                .single();
-            
-            if (error) {
-                console.error('Erro ao buscar do Supabase:', error);
-                return null;
-            }
-            
-            console.log('Relato encontrado no Supabase:', data);
-            return data;
-        }
+        console.log('Buscando relato do Supabase, ID:', relatoId);
         
-        // 4. Buscar relato do localStorage (fallback)
-        async function buscarRelatoDoLocalStorage(relatoId, dataParam) {
-            console.log('Buscando relato no localStorage...');
-            
-            // Tentar pegar do paciente atual
-            const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-            const pacienteId = pacienteInfo.id;
-            
-            if (!pacienteId) {
-                console.log('Nenhum paciente ativo no localStorage');
-                return null;
-            }
-            
-            const registros = JSON.parse(localStorage.getItem('pacienteRegistros') || '{}');
-            const relatosPaciente = registros[pacienteId];
-            
-            if (!relatosPaciente || relatosPaciente.length === 0) {
-                console.log('Nenhum registro local para este paciente');
-                return null;
-            }
-            
-            // Se veio data da URL, tentar encontrar por data
-            if (dataParam) {
-                const dataBusca = dataParam.split(' às ')[0]; // Pegar apenas a data
-                const relatoEncontrado = relatosPaciente.find(r => r.data === dataBusca);
-                
-                if (relatoEncontrado) {
-                    console.log('Relato encontrado no localStorage por data:', relatoEncontrado);
-                    return {
-                        relato: relatoEncontrado.texto,
-                        data_consulta: relatoEncontrado.data + ' ' + relatoEncontrado.hora
-                    };
-                }
-            }
-            
-            // Tentar encontrar pelo texto (se veio texto na URL)
-            const textoURL = new URLSearchParams(window.location.search).get('texto');
-            if (textoURL) {
-                const textoBusca = decodeURIComponent(textoURL).substring(0, 100);
-                const relatoEncontrado = relatosPaciente.find(r => 
-                    r.texto.includes(textoBusca)
-                );
-                
-                if (relatoEncontrado) {
-                    console.log('Relato encontrado no localStorage por texto:', relatoEncontrado);
-                    return {
-                        relato: relatoEncontrado.texto,
-                        data_consulta: relatoEncontrado.data + ' ' + relatoEncontrado.hora
-                    };
-                }
-            }
-            
+        const { data, error } = await window.supabaseClient
+            .from('consultas')
+            .select('*')
+            .eq('id', relatoId)
+            .single();
+        
+        if (error) {
+            console.error('Erro ao buscar do Supabase:', error);
             return null;
         }
         
-        // 5. Exibir relato na página
-        function exibirRelato(relatoData, dataParam) {
-            const conteudoDiv = document.getElementById('conteudo-relato');
-            const infoDiv = document.getElementById('info-relato');
+        console.log('Relato encontrado no Supabase:', data);
+        return data;
+    }
+    
+    // 3. Buscar relato do localStorage (fallback)
+    async function buscarRelatoDoLocalStorage(relatoId, dataParam) {
+        console.log('Buscando relato no localStorage...');
+        
+        // Tentar pegar do paciente atual
+        const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+        const pacienteId = pacienteInfo.id;
+        
+        if (!pacienteId) {
+            console.log('Nenhum paciente ativo no localStorage');
+            return null;
+        }
+        
+        const registros = JSON.parse(localStorage.getItem('pacienteRegistros') || '{}');
+        const relatosPaciente = registros[pacienteId];
+        
+        if (!relatosPaciente || relatosPaciente.length === 0) {
+            console.log('Nenhum registro local para este paciente');
+            return null;
+        }
+        
+        // Se veio data da URL, tentar encontrar por data
+        if (dataParam) {
+            const dataBusca = dataParam.split(' às ')[0]; // Pegar apenas a data
+            const relatoEncontrado = relatosPaciente.find(r => r.data === dataBusca);
             
-            // Formatar data
-            let dataFormatada = '';
-            if (dataParam) {
-                dataFormatada = dataParam;
-            } else if (relatoData.data_consulta) {
-                try {
-                    const dataObj = new Date(relatoData.data_consulta);
-                    dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + 
-                                   dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                } catch {
-                    dataFormatada = relatoData.data_consulta;
-                }
+            if (relatoEncontrado) {
+                console.log('Relato encontrado no localStorage por data:', relatoEncontrado);
+                return {
+                    relato: relatoEncontrado.texto,
+                    data_consulta: relatoEncontrado.data + ' ' + relatoEncontrado.hora
+                };
             }
-            
-            // Atualizar informações
-            const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
-            infoDiv.innerHTML = `
-                <p><strong>Paciente:</strong> ${pacienteInfo.nome || 'Não especificado'}</p>
-                <p><strong>Data da consulta:</strong> ${dataFormatada}</p>
-            `;
-            
-            // Exibir texto do relato (com quebras de linha)
-            const textoFormatado = relatoData.relato.replace(/\n/g, '<br>');
-            conteudoDiv.className = 'texto-completo';
-            conteudoDiv.innerHTML = textoFormatado;
         }
         
-        // 6. Mostrar erro
-        function mostrarErro(mensagem) {
-            const conteudoDiv = document.getElementById('conteudo-relato');
-            conteudoDiv.className = 'error';
-            conteudoDiv.innerHTML = `<p>${mensagem}</p>`;
-        }
-        
-        // 7. Funções dos botões
-        function voltarParaRegistro() {
-            // Voltar para a página de registro
-            window.location.href = 'registro.html';
-        }
-        
-        async function copiarRelato() {
-            const texto = document.getElementById('conteudo-relato').textContent;
+        // Tentar encontrar pelo texto (se veio texto na URL)
+        const textoURL = new URLSearchParams(window.location.search).get('texto');
+        if (textoURL) {
+            const textoBusca = decodeURIComponent(textoURL).substring(0, 100);
+            const relatoEncontrado = relatosPaciente.find(r => 
+                r.texto.includes(textoBusca)
+            );
             
+            if (relatoEncontrado) {
+                console.log('Relato encontrado no localStorage por texto:', relatoEncontrado);
+                return {
+                    relato: relatoEncontrado.texto,
+                    data_consulta: relatoEncontrado.data + ' ' + relatoEncontrado.hora
+                };
+            }
+        }
+        
+        return null;
+    }
+    
+    // 4. Exibir relato na página
+    function exibirRelato(relatoData, dataParam) {
+        const conteudoDiv = document.getElementById('conteudo-relato');
+        const infoDiv = document.getElementById('info-relato');
+        
+        // Formatar data
+        let dataFormatada = '';
+        if (dataParam) {
+            dataFormatada = dataParam;
+        } else if (relatoData.data_consulta) {
             try {
-                await navigator.clipboard.writeText(texto);
-                alert('✅ Relato copiado para a área de transferência!');
-            } catch (erro) {
-                // Fallback para navegadores antigos
-                const textarea = document.createElement('textarea');
-                textarea.value = texto;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                alert('✅ Relato copiado!');
+                const dataObj = new Date(relatoData.data_consulta);
+                dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + 
+                               dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                dataFormatada = relatoData.data_consulta;
             }
         }
         
-        function imprimirRelato() {
-            window.print();
-        }
+        // Atualizar informações
+        const pacienteInfo = JSON.parse(localStorage.getItem('pacienteAtual') || '{}');
+        infoDiv.innerHTML = `
+            <p><strong>Paciente:</strong> ${pacienteInfo.nome || 'Não especificado'}</p>
+            <p><strong>Data da consulta:</strong> ${dataFormatada}</p>
+        `;
         
-        // 8. Fechar com ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                voltarParaRegistro();
-            }
-        });
-    </script>
+        // Exibir texto do relato (com quebras de linha)
+        const textoFormatado = relatoData.relato.replace(/\n/g, '<br>');
+        conteudoDiv.className = 'texto-completo';
+        conteudoDiv.innerHTML = textoFormatado;
+    }
+    
+    // 5. Mostrar erro
+    function mostrarErro(mensagem) {
+        const conteudoDiv = document.getElementById('conteudo-relato');
+        conteudoDiv.className = 'error';
+        conteudoDiv.innerHTML = `<p>${mensagem}</p>`;
+    }
+    
+    // 6. Funções dos botões
+    function voltarParaRegistro() {
+        // Voltar para a página de registro
+        window.location.href = 'registro.html';
+    }
+    
+    async function copiarRelato() {
+        const conteudoDiv = document.getElementById('conteudo-relato');
+        const texto = conteudoDiv.textContent || conteudoDiv.innerText;
+        
+        try {
+            await navigator.clipboard.writeText(texto);
+            alert('✅ Relato copiado para a área de transferência!');
+        } catch (erro) {
+            // Fallback para navegadores antigos
+            const textarea = document.createElement('textarea');
+            textarea.value = texto;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('✅ Relato copiado!');
+        }
+    }
+    
+    function imprimirRelato() {
+        window.print();
+    }
+    
+    // 7. Fechar com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            voltarParaRegistro();
+        }
+    });
+</script>
 </body>
 </html>
